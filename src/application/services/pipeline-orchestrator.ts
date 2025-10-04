@@ -9,6 +9,7 @@ import {
 } from "../../domain/frontmatter/entities/markdown-document.ts";
 import { FrontmatterData } from "../../domain/frontmatter/value-objects/frontmatter-data.ts";
 import { FileSystemPort } from "../../infrastructure/ports/file-system-port.ts";
+import { SchemaData } from "../../domain/schema/entities/schema.ts";
 import {
   DocumentLoader,
   UniversalPipeline,
@@ -136,6 +137,8 @@ export interface PipelineResult {
  * Eliminates architectural violations by delegating to configurable pipeline stages.
  */
 export class PipelineOrchestrator implements DocumentLoader {
+  private currentSchema?: SchemaData; // ← Schema for Stage 0 transformation
+
   private constructor(
     private readonly fileSystem: FileSystemPort,
     private readonly configManager: ConfigurationManager,
@@ -381,13 +384,17 @@ export class PipelineOrchestrator implements DocumentLoader {
 
     const result = executionResult.unwrap();
 
-    // Load schema early to use for Phase 1 directive processing and property name mapping
+    // Load schema early to use for Stage 0 (yaml-schema-mapper) and Phase 1 directive processing
     const schemaDataResult = await this.schemaDirectiveProcessor.loadSchemaData(
       config.schemaPath,
     );
     if (schemaDataResult.isError()) {
       return Result.error(schemaDataResult.unwrapError());
     }
+
+    // Store schema for Stage 0 transformation in loadMarkdownDocument()
+    // Cast to SchemaData - loadSchemaData returns Record<string, unknown> but it's structurally compatible
+    this.currentSchema = schemaDataResult.unwrap() as SchemaData;
 
     // Phase 1: Apply per-file directives to each document BEFORE template processing
     // DEBUG: Log document count
@@ -622,11 +629,15 @@ export class PipelineOrchestrator implements DocumentLoader {
   /**
    * Implements DocumentLoader interface for Universal Pipeline.
    * Replaces hardcoded document loading with configurable approach.
+   * Passes schema to enable Stage 0 transformation (yaml-schema-mapper).
    */
   async loadMarkdownDocument(
     filePath: string,
   ): Promise<Result<MarkdownDocument, ProcessingError>> {
-    // Delegate to frontmatter parsing service
-    return await this.frontmatterParsingService.loadMarkdownDocument(filePath);
+    // Delegate to frontmatter parsing service with schema for Stage 0 transformation
+    return await this.frontmatterParsingService.loadMarkdownDocument(
+      filePath,
+      this.currentSchema,
+    );
   }
 }

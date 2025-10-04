@@ -6,6 +6,8 @@ import { FrontmatterData } from "../value-objects/frontmatter-data.ts";
 import { FileSystemPort } from "../../../infrastructure/ports/file-system-port.ts";
 import { createFileError } from "../../shared/types/file-errors.ts";
 import { extract as extractYaml } from "jsr:@std/front-matter@1.0.5/yaml";
+import { SchemaData } from "../../schema/entities/schema.ts";
+import { mapDataToSchema } from "@yaml-schema-mapper/mod.ts";
 
 /**
  * Domain service for parsing frontmatter from markdown documents.
@@ -36,9 +38,12 @@ export class FrontmatterParsingService {
   /**
    * Loads and parses a markdown document from file path.
    * Creates a complete MarkdownDocument entity with frontmatter data.
+   * @param filePath - Path to the markdown file
+   * @param schema - Optional schema for Stage 0 transformation (yaml-schema-mapper)
    */
   async loadMarkdownDocument(
     filePath: string,
+    schema?: SchemaData,
   ): Promise<Result<MarkdownDocument, ProcessingError>> {
     // Read file using FileSystemPort
     const contentResult = await this.fileSystem.readTextFile(filePath);
@@ -66,8 +71,11 @@ export class FrontmatterParsingService {
       );
     }
 
-    // Parse frontmatter
-    const frontmatterResult = this.parseFrontmatter(contentResult.unwrap());
+    // Parse frontmatter with schema for Stage 0 transformation
+    const frontmatterResult = this.parseFrontmatter(
+      contentResult.unwrap(),
+      schema,
+    );
     if (frontmatterResult.isError()) {
       return Result.error(
         new ProcessingError(
@@ -113,9 +121,12 @@ export class FrontmatterParsingService {
   /**
    * Parses frontmatter from markdown content.
    * Returns Result type following totality principles.
+   * @param content - Markdown content with frontmatter
+   * @param schema - Optional schema for Stage 0 transformation (yaml-schema-mapper)
    */
   parseFrontmatter(
     content: string,
+    schema?: SchemaData,
   ): Result<
     { frontmatter?: Record<string, unknown>; content: string },
     ProcessingError
@@ -134,10 +145,40 @@ export class FrontmatterParsingService {
       // Use proper YAML parser from @std/front-matter
       const extracted = extractYaml(content);
 
+      // Stage 0: Apply yaml-schema-mapper transformation if schema provided
+      let processedAttrs = extracted.attrs;
+
+      if (
+        schema && extracted.attrs && Object.keys(extracted.attrs).length > 0
+      ) {
+        const transformResult = mapDataToSchema({
+          schema: schema as unknown as Record<string, unknown>,
+          data: extracted.attrs as Record<string, unknown>,
+          options: {
+            coerceTypes: true,
+            validateTypes: true,
+            strict: false,
+          },
+        });
+
+        if (!transformResult.isOk()) {
+          const error = transformResult.unwrapError();
+          return Result.error(
+            new ProcessingError(
+              `Schema transformation failed (Stage 0): ${error.message}`,
+              "SCHEMA_TRANSFORMATION_ERROR",
+              { error, rawData: extracted.attrs },
+            ),
+          );
+        }
+
+        processedAttrs = transformResult.unwrap().data;
+      }
+
       // Return frontmatter and content (even if frontmatter is empty)
       const frontmatter =
-        (extracted.attrs && Object.keys(extracted.attrs).length > 0)
-          ? extracted.attrs as Record<string, unknown>
+        (processedAttrs && Object.keys(processedAttrs).length > 0)
+          ? processedAttrs as Record<string, unknown>
           : undefined;
 
       return Result.ok({
