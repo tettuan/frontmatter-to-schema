@@ -1,0 +1,23 @@
+{
+  "name": "@frontmatter-to-schema/yaml-schema-mapper",
+  "version": "0.1.0",
+  "exports": "./src/mod.ts",
+  "tasks": {
+    "test": "deno test --allow-all",
+    "test:coverage": "deno test --allow-all --coverage=./tmp/coverage",
+    "coverage": "deno coverage ./tmp/coverage --lcov --output=./tmp/coverage.lcov"
+  },
+  "imports": {
+    "@std/assert": "jsr:@std/assert@^1.0.0"
+  },
+  "compilerOptions": {
+    "strict": true,
+    "noImplicitAny": true,
+    "strictNullChecks": true,
+    "strictFunctionTypes": true,
+    "strictBindCallApply": true,
+    "strictPropertyInitialization": true,
+    "noImplicitThis": true,
+    "alwaysStrict": true
+  }
+}
