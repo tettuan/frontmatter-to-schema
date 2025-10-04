@@ -140,10 +140,14 @@ export class TemplateRenderer {
       }
 
       // Container-level context
-      // Only includes: items array and x-derived-* values (processed by Schema Domain)
-      // Does NOT include frontmatter values (those are for items template only)
+      // - Always includes: items array and x-derived-* values (processed by Schema Domain)
+      // - Single document case: also includes frontmatter values at root level
+      //   (allows {title}, {type} etc. to work in container template)
+      // - Multiple documents case: frontmatter values are for items template only
       const containerContext = {
         items: arrayData,
+        // For single document processing, include frontmatter at root level
+        ...(plainObjects.length === 1 ? plainObjects[0] : {}),
       };
 
       // If ItemsProcessor is available and itemsTemplate provided, use it for {@items} expansion
