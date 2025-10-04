@@ -125,6 +125,8 @@ export interface PipelineResult {
     readonly schemaPath: string;
     readonly templatePath: string;
     readonly outputFormat: string;
+    readonly errors?: ProcessingError[];
+    readonly warnings?: number;
   };
 }
 
@@ -282,6 +284,9 @@ export class PipelineOrchestrator implements DocumentLoader {
   async execute(
     config: PipelineConfig,
   ): Promise<Result<PipelineResult, ProcessingError>> {
+    // Track all errors encountered during processing
+    const allErrors: ProcessingError[] = [];
+
     // Resolve input path to actual files if it's a single string
     // This handles directories and glob patterns
     let resolvedInputPath: string | string[] = config.inputPath;
@@ -397,7 +402,14 @@ export class PipelineOrchestrator implements DocumentLoader {
         schemaDataResult.unwrap(),
       );
       if (phase1Result.isError()) {
-        return Result.error(phase1Result.unwrapError());
+        // Collect error but continue processing
+        const error = phase1Result.unwrapError();
+        allErrors.push(error);
+        console.error(
+          `⚠️  Warning: Failed to process ${document.getPath().toString()}: ${error.message}`,
+        );
+        // Skip this document and continue with others
+        continue;
       }
       phase1ProcessedDocuments.push(phase1Result.unwrap());
     }
@@ -433,13 +445,16 @@ export class PipelineOrchestrator implements DocumentLoader {
           // Create empty FrontmatterData for documents without frontmatter
           const emptyDataResult = FrontmatterData.create({});
           if (emptyDataResult.isError()) {
-            return Result.error(
-              new ProcessingError(
-                `Failed to create empty frontmatter data: ${emptyDataResult.unwrapError().message}`,
-                "FRONTMATTER_CREATION_ERROR",
-                { error: emptyDataResult.unwrapError() },
-              ),
+            // Warn but continue processing
+            const error = new ProcessingError(
+              `Failed to create empty frontmatter data for ${doc.getPath().toString()}: ${emptyDataResult.unwrapError().message}`,
+              "FRONTMATTER_CREATION_ERROR",
+              { error: emptyDataResult.unwrapError() },
             );
+            allErrors.push(error);
+            console.error(`⚠️  Warning: ${error.message}`);
+            // Skip this document
+            continue;
           }
           frontmatterDataArray.push(emptyDataResult.unwrap());
         }
@@ -457,26 +472,34 @@ export class PipelineOrchestrator implements DocumentLoader {
           frontmatterDataArray,
         );
       if (coordinatorResult.isError()) {
-        return Result.error(coordinatorResult.unwrapError());
+        const error = coordinatorResult.unwrapError();
+        allErrors.push(error);
+        console.error(
+          `⚠️  Warning: Template coordinator failed: ${error.message}`,
+        );
+        // Cannot continue without coordinator output - use empty object
       }
 
       // Parse coordinator output to apply schema directives
-      const outputContent = coordinatorResult.unwrap().content;
+      const outputContent = coordinatorResult.isError()
+        ? "{}"
+        : coordinatorResult.unwrap().content;
       let outputData: Record<string, unknown>;
       try {
         outputData = JSON.parse(outputContent);
       } catch (parseError) {
-        return Result.error(
-          new ProcessingError(
-            `Failed to parse coordinator output: ${
-              parseError instanceof Error
-                ? parseError.message
-                : String(parseError)
-            }`,
-            "COORDINATOR_OUTPUT_PARSE_ERROR",
-            { error: parseError },
-          ),
+        const error = new ProcessingError(
+          `Failed to parse coordinator output: ${
+            parseError instanceof Error
+              ? parseError.message
+              : String(parseError)
+          }`,
+          "COORDINATOR_OUTPUT_PARSE_ERROR",
+          { error: parseError },
         );
+        allErrors.push(error);
+        console.error(`⚠️  Warning: ${error.message}`);
+        outputData = {}; // Use empty object as fallback
       }
 
       // Apply schema directives (x-derived-from, x-derived-unique, etc.)
@@ -486,7 +509,12 @@ export class PipelineOrchestrator implements DocumentLoader {
           schemaData,
         );
       if (directivesResult.isError()) {
-        return Result.error(directivesResult.unwrapError());
+        const error = directivesResult.unwrapError();
+        allErrors.push(error);
+        console.error(
+          `⚠️  Warning: Failed to apply schema directives: ${error.message}`,
+        );
+        // Continue with original data if directives fail
       }
 
       // Format conversion and output writing
@@ -497,14 +525,17 @@ export class PipelineOrchestrator implements DocumentLoader {
         | "markdown";
       let finalOutput: string;
 
+      const dataToWrite = directivesResult.isError()
+        ? outputData
+        : directivesResult.unwrap();
       if (outputFormat === "json") {
-        finalOutput = JSON.stringify(directivesResult.unwrap(), null, 2);
+        finalOutput = JSON.stringify(dataToWrite, null, 2);
       } else if (outputFormat === "yaml") {
         const { stringify } = await import("@std/yaml");
-        finalOutput = stringify(directivesResult.unwrap());
+        finalOutput = stringify(dataToWrite);
       } else {
         // For now, fall back to JSON for xml and markdown
-        finalOutput = JSON.stringify(directivesResult.unwrap(), null, 2);
+        finalOutput = JSON.stringify(dataToWrite, null, 2);
       }
 
       const finalWriteResult = await this.fileSystem.writeTextFile(
@@ -512,18 +543,19 @@ export class PipelineOrchestrator implements DocumentLoader {
         finalOutput,
       );
       if (finalWriteResult.isError()) {
-        return Result.error(
-          new ProcessingError(
-            `Failed to write final output: ${
-              createFileError(finalWriteResult.unwrapError()).message
-            }`,
-            "OUTPUT_WRITE_ERROR",
-            {
-              outputPath: config.outputPath,
-              error: finalWriteResult.unwrapError(),
-            },
-          ),
+        const error = new ProcessingError(
+          `Failed to write final output: ${
+            createFileError(finalWriteResult.unwrapError()).message
+          }`,
+          "OUTPUT_WRITE_ERROR",
+          {
+            outputPath: config.outputPath,
+            error: finalWriteResult.unwrapError(),
+          },
         );
+        allErrors.push(error);
+        console.error(`⚠️  Warning: ${error.message}`);
+        // Continue - processing completed but output write failed
       }
     } else {
       // === TRADITIONAL PATH (for schemas without x-template) ===
@@ -545,19 +577,31 @@ export class PipelineOrchestrator implements DocumentLoader {
           schemaData,
         );
       if (directivesResult.isError()) {
-        return Result.error(directivesResult.unwrapError());
+        const error = directivesResult.unwrapError();
+        allErrors.push(error);
+        console.error(
+          `⚠️  Warning: Failed to apply schema directives: ${error.message}`,
+        );
+        // Continue with original data if directives fail
       }
 
       // Render output using template output renderer with schema
       const renderingResult = await this.templateOutputRenderer.renderOutput(
         result.template,
-        directivesResult.unwrap(),
+        directivesResult.isError()
+          ? transformedData.unwrap()
+          : directivesResult.unwrap(),
         result.outputFormat as "json" | "yaml" | "xml" | "markdown",
         config.outputPath,
         schemaData,
       );
       if (renderingResult.isError()) {
-        return Result.error(renderingResult.unwrapError());
+        const error = renderingResult.unwrapError();
+        allErrors.push(error);
+        console.error(
+          `⚠️  Warning: Failed to render output: ${error.message}`,
+        );
+        // Continue - output may be partial
       }
     }
 
@@ -569,6 +613,8 @@ export class PipelineOrchestrator implements DocumentLoader {
         schemaPath: config.schemaPath,
         templatePath: config.templatePath,
         outputFormat: result.outputFormat,
+        errors: allErrors.length > 0 ? allErrors : undefined,
+        warnings: allErrors.length,
       },
     });
   }

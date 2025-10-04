@@ -1204,8 +1204,14 @@ Content`,
           outputFormat: "json",
         });
 
-        assertEquals(result.isError(), true);
-        assertEquals(result.unwrapError().code, "OUTPUT_WRITE_ERROR");
+        // With resilient error handling, processing continues with warnings
+        assertEquals(result.isError(), false);
+        const pipelineResult = result.unwrap();
+        assertEquals(pipelineResult.metadata.warnings! > 0, true);
+        assertEquals(
+          pipelineResult.metadata.errors![0].code,
+          "OUTPUT_WRITE_ERROR",
+        );
       },
     );
 

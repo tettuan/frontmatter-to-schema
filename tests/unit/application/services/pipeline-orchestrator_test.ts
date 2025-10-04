@@ -439,9 +439,11 @@ Deno.test("PipelineOrchestrator - output write error", async () => {
 
   const result = await orchestrator.execute(config);
 
-  assertEquals(result.isError(), true);
-  const error = result.unwrapError();
-  assertEquals(error.code, "OUTPUT_WRITE_ERROR");
+  // With resilient error handling, processing continues with warnings
+  assertEquals(result.isError(), false);
+  const pipelineResult = result.unwrap();
+  assertEquals(pipelineResult.metadata.warnings! > 0, true);
+  assertEquals(pipelineResult.metadata.errors![0].code, "OUTPUT_WRITE_ERROR");
 });
 
 Deno.test("PipelineOrchestrator - complex frontmatter parsing", async () => {
