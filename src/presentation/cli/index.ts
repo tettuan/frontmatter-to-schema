@@ -97,19 +97,27 @@ export class CLI {
   }
 
   private async processDirectInvocation(args: string[]): Promise<CLIResponse> {
-    // Direct invocation expects: <schema> <input> <output> [options]
+    // Direct invocation expects: <schema> <output> <input...> [--verbose]
+    // This order allows shell glob expansion to work correctly
     if (args.length < 3) {
       return {
         ok: false,
         error: new ProcessingError(
-          "Insufficient arguments. Usage: <schema> <input> <output> [--verbose]",
+          "Insufficient arguments. Usage: <schema> <output> <input...> [--verbose]",
           "INVALID_ARGUMENTS",
           { args },
         ),
       };
     }
 
-    const [schemaPath, inputPath, outputPath, ...options] = args;
+    // Parse arguments from end to beginning to handle glob expansion
+    const hasVerbose = args[args.length - 1] === "--verbose";
+    const options = hasVerbose ? ["--verbose"] : [];
+    const endIndex = hasVerbose ? args.length - 1 : args.length;
+
+    const schemaPath = args[0];
+    const outputPath = args[1];
+    const inputPaths = args.slice(2, endIndex);
 
     // Try to extract template from schema's x-template directive
     const templatePath = await this.extractTemplateFromSchema(schemaPath);
@@ -132,6 +140,45 @@ export class CLI {
       outputFormat = "xml";
     } else if (outputPath.endsWith(".md") || outputPath.endsWith(".markdown")) {
       outputFormat = "markdown";
+    }
+
+    // When shell expands glob, we get multiple input files
+    // We need to create a temporary directory strategy to process them all together
+    // For now, use the first input if single file, or create temp dir with all files
+    let inputPath: string;
+
+    if (inputPaths.length === 1) {
+      // Single file - use directly
+      inputPath = inputPaths[0];
+    } else {
+      // Multiple files from glob expansion
+      // Find the common parent directory of all files
+      const { dirname } = await import("@std/path");
+
+      // Get all unique directories
+      const dirs = inputPaths.map((p) => dirname(p));
+      const uniqueDirs = [...new Set(dirs)];
+
+      // Find common parent by splitting paths and finding common prefix
+      if (uniqueDirs.length === 1) {
+        // All files in same directory
+        inputPath = uniqueDirs[0];
+      } else {
+        // Files in multiple directories - find common ancestor
+        const pathParts = uniqueDirs.map((d) => d.split("/"));
+        const commonParts: string[] = [];
+
+        for (let i = 0; i < pathParts[0].length; i++) {
+          const part = pathParts[0][i];
+          if (pathParts.every((parts) => parts[i] === part)) {
+            commonParts.push(part);
+          } else {
+            break;
+          }
+        }
+
+        inputPath = commonParts.join("/") || ".";
+      }
     }
 
     const config: PipelineConfig = {
@@ -281,20 +328,29 @@ COMMANDS:
 
 DIRECT INVOCATION:
     When schema contains x-template directive:
-        <schema> <input> <output> [--verbose]
+        <schema> <output> <input...> [--verbose]
 
         Arguments:
             schema      Path to JSON schema with x-template
-            input       Path to markdown file or directory
             output      Path for output file
+            input...    Path(s) to markdown file(s) or directory or glob pattern
             --verbose   Show processing details
+
+        Note: Input is specified AFTER output to allow shell glob expansion.
+              The shell will expand patterns like *.md before passing to CLI.
 
 EXAMPLES:
     # Process with explicit template
     frontmatter-to-schema process schema.json template.json article.md output.json
 
-    # Direct invocation (schema has x-template)
-    frontmatter-to-schema schema.json "*.md" output.json --verbose
+    # Direct invocation (schema has x-template) - single file
+    frontmatter-to-schema schema.json output.json article.md --verbose
+
+    # Direct invocation with glob pattern (shell expands *.md)
+    frontmatter-to-schema schema.json output.json *.md --verbose
+
+    # Direct invocation with directory
+    frontmatter-to-schema schema.json output.json ./docs/ --verbose
 
     # Process directory with YAML output
     frontmatter-to-schema process schema.json template.json ./docs/ output.yaml yaml

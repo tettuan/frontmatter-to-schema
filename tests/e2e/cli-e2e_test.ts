@@ -253,11 +253,12 @@ published: true
   const outputPath = join(TEST_DIR, "glob-output.json");
 
   // Test glob pattern (simulates quoted pattern from command line)
+  // New argument order: <schema> <output> <input...> [--verbose]
   const globPattern = join(TEST_FIXTURES_DIR, "glob-test-*.md");
   const result = await cliInstance.run([
     schemaPath,
-    globPattern,
     outputPath,
+    globPattern,
     "--verbose",
   ]);
 
