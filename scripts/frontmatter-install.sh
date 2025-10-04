@@ -134,6 +134,7 @@ DENO_INSTALL_ROOT="$INSTALL_ROOT" deno install \
     --global \
     $PERMISSIONS \
     --name "$BINARY_NAME" \
+    --config "$REPO_INSTALL_DIR/deno.json" \
     --force \
     "$REPO_INSTALL_DIR/cli.ts"
 
