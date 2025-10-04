@@ -9,6 +9,7 @@ import { TemplatePath } from "../../domain/template/value-objects/template-path.
 import { Template } from "../../domain/template/entities/template.ts";
 import { FileSystemPort } from "../../infrastructure/ports/file-system-port.ts";
 import { createFileError } from "../../domain/shared/types/file-errors.ts";
+import { resolve } from "@std/path";
 
 /**
  * Template handoff context for coordination between domains
@@ -205,7 +206,7 @@ export class TemplateSchemaCoordinator {
    * Resolves template path relative to schema directory
    *
    * If templatePath is already absolute (starts with /), returns as-is.
-   * Otherwise, joins it with schemaDir.
+   * Otherwise, joins it with schemaDir and converts to absolute path.
    */
   private resolveTemplatePath(templatePath: string, schemaDir: string): string {
     // If path is already absolute, return as-is
@@ -213,8 +214,9 @@ export class TemplateSchemaCoordinator {
       return templatePath;
     }
 
-    // Resolve relative path from schema directory
-    return `${schemaDir}/${templatePath}`;
+    // Resolve relative path from schema directory and convert to absolute path
+    // This ensures json-template can find the file regardless of cwd
+    return resolve(schemaDir, templatePath);
   }
 
   /**
