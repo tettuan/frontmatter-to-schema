@@ -3,6 +3,7 @@
 ## Investigation Complete ✅
 
 ### Completed
+
 - [x] Read totality.ja.md, domain_boundary.md, architecture.md
 - [x] Create analysis directory
 - [x] Investigate domain layer (excellent compliance)
@@ -21,17 +22,20 @@
 Before proceeding with refactoring, **project owner decision needed**:
 
 **Option A: Fix Type Assertions Only** (Recommended - 2 hours)
+
 - Fix 5 type assertions in application layer
 - Leave unwrap() calls (they're technically safe with current error handling)
 - Minimal risk, quick win
 
 **Option B: Full Totality Compliance** (4-6 hours)
+
 - Fix all type assertions
 - Replace unwrap() with unwrapOr() / match()
 - Refactor to use monadic composition
 - Higher risk of introducing bugs, more thorough
 
 **Option C: Major Refactoring** (34-66 hours)
+
 - Everything in Option B
 - Migrate errors to discriminated unions
 - Breaking changes throughout codebase
@@ -43,7 +47,7 @@ Before proceeding with refactoring, **project owner decision needed**:
 
 ## Current Status
 
-**Investigation**: ✅ Complete  
+**Investigation**: ✅ Complete\
 **Refactoring**: ⏸️ Awaiting user decision
 
 ## Next Steps

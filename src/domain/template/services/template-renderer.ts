@@ -127,15 +127,27 @@ export class TemplateRenderer {
       const plainObjects = data.map((item) => item.getData());
 
       // Extract array data for items processing
-      // If frontmatterPartProperty is specified, extract and aggregate those arrays
+      // If frontmatterPartProperty is specified (e.g., "traceability"), check if
+      // frontmatter actually has that nested array property. If so, extract it.
+      // This is used with x-frontmatter-part + x-flatten-arrays directives.
+      // Example: frontmatter.traceability = [{id: {...}}, {id: {...}}]
+      //   -> Extract traceability array elements for {@items} expansion
       let arrayData: unknown[];
       if (frontmatterPartProperty) {
-        arrayData = plainObjects.flatMap((obj) => {
+        // Try to extract arrays from the specified frontmatter property
+        const extracted = plainObjects.flatMap((obj) => {
           const value = obj[frontmatterPartProperty];
-          return Array.isArray(value) ? value : [];
+          if (Array.isArray(value)) {
+            return value;
+          }
+          return [];
         });
+
+        // If extraction succeeded (non-empty), use extracted data
+        // Otherwise, fall back to using plainObjects (case: property doesn't exist in frontmatter)
+        arrayData = extracted.length > 0 ? extracted : plainObjects;
       } else {
-        // Fallback: use entire data objects
+        // No frontmatterPartProperty: use entire frontmatter objects for {@items}
         arrayData = plainObjects;
       }
 

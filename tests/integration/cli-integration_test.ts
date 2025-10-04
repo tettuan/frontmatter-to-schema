@@ -414,7 +414,7 @@ Content without title`;
       ]);
 
       assertEquals(result.ok, false);
-      assertEquals(result.error?.code, "NO_GLOB_MATCHES");
+      assertEquals(result.error?.code, "NO_FILES_FOUND");
     });
   });
 });

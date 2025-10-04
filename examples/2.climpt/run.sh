@@ -30,10 +30,11 @@ echo "Output: $OUTPUT_FILE"
 echo
 
 # Execute frontmatter-to-schema command with new CLI interface
+# Correct order: <schema> <output> <input...> [--verbose]
 FRONTMATTER_TO_SCHEMA_TEST_MODE=true "$CLI" \
   "$REGISTRY_SCHEMA" \
-  "$PROMPTS_DIR" \
   "$OUTPUT_FILE" \
+  "$PROMPTS_DIR" \
   --verbose
 
 # Capture the exit status

@@ -28,41 +28,48 @@
 Based on totality.ja.md principles:
 
 #### 1. Error Type Design
-**Current**: Inheritance-based error classes (extends Error)
-**Totality Recommendation**: Discriminated unions with kind tags
+
+**Current**: Inheritance-based error classes (extends Error) **Totality
+Recommendation**: Discriminated unions with kind tags
 
 ```typescript
 // Current (inheritance)
 export class SchemaError extends DomainError {
-  constructor(message: string, code: string, context?: Record<string, unknown>)
+  constructor(message: string, code: string, context?: Record<string, unknown>);
 }
 
 // Totality pattern (discriminated union)
 type ValidationError =
   | { kind: "OutOfRange"; value: unknown; min?: number; max?: number }
   | { kind: "InvalidRegex"; pattern: string }
-  | { kind: "PatternMismatch"; value: string; pattern: string }
+  | { kind: "PatternMismatch"; value: string; pattern: string };
 ```
 
 **Question**: Should we refactor errors to discriminated unions?
+
 - **Pro**: Better type safety, exhaustive checking, aligns with totality.ja.md
 - **Con**: Breaking change, current design already functional
 - **Decision**: Needs architectural review
 
 #### 2. Optional Properties in Interfaces/Types
-**Search needed**: Look for `prop?: Type` patterns that could be discriminated unions
+
+**Search needed**: Look for `prop?: Type` patterns that could be discriminated
+unions
 
 #### 3. Type Assertions and Unsafe Casts
-**Initial search**: No `as Type` found in domain layer ✅
-**Next**: Check application and infrastructure layers
+
+**Initial search**: No `as Type` found in domain layer ✅ **Next**: Check
+application and infrastructure layers
 
 #### 4. Partial Functions (undefined/null returns)
-**Initial search**: No explicit `return null` found in domain ✅
-**Next**: Check for functions returning `T | undefined` without Result wrapper
+
+**Initial search**: No explicit `return null` found in domain ✅ **Next**: Check
+for functions returning `T | undefined` without Result wrapper
 
 #### 5. Exception-based Control Flow
-**Initial search**: No `throw new` in domain layer ✅
-**Note**: Error classes themselves extend Error but are used with Result type
+
+**Initial search**: No `throw new` in domain layer ✅ **Note**: Error classes
+themselves extend Error but are used with Result type
 
 ### 🔍 Next Investigation Steps
 
@@ -91,27 +98,39 @@ type ValidationError =
 ### Q1: Should errors be discriminated unions instead of classes?
 
 **Current Design**:
+
 ```typescript
 class ValidationError extends DomainError {
-  constructor(message: string, code: string, context?: Record<string, unknown>)
+  constructor(message: string, code: string, context?: Record<string, unknown>);
 }
 ```
 
 **Totality Pattern**:
+
 ```typescript
 type ValidationError =
   | { kind: "EmptyInput"; message: string }
-  | { kind: "OutOfRange"; value: unknown; min: number; max: number; message: string }
+  | {
+    kind: "OutOfRange";
+    value: unknown;
+    min: number;
+    max: number;
+    message: string;
+  };
 
-const createError = (error: ValidationError): ValidationError & { message: string } => ({
+const createError = (
+  error: ValidationError,
+): ValidationError & { message: string } => ({
   ...error,
-  message: error.message || getDefaultMessage(error)
-})
+  message: error.message || getDefaultMessage(error),
+});
 ```
 
 **Analysis**:
+
 - Current design: More traditional OOP, familiar to TypeScript developers
-- Totality pattern: Better type safety, exhaustive checking, no instanceof needed
+- Totality pattern: Better type safety, exhaustive checking, no instanceof
+  needed
 - Impact: Breaking change to all error handling code
 
 **Recommendation**: Document both approaches, let project owner decide
@@ -119,6 +138,7 @@ const createError = (error: ValidationError): ValidationError & { message: strin
 ### Q2: Result<T, E> error unwrapping
 
 Current Result has deprecated `unwrap()` that throws. Should we:
+
 - Remove it entirely?
 - Keep it for gradual migration?
 
@@ -147,4 +167,5 @@ Current Result has deprecated `unwrap()` that throws. Should we:
 - The project already has strong totality foundations
 - Main question is whether to refactor errors to discriminated unions
 - Need to check value objects, application layer, and infrastructure
-- This is not a major refactoring - more of a compliance audit and minor improvements
+- This is not a major refactoring - more of a compliance audit and minor
+  improvements

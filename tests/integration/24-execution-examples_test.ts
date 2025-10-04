@@ -1043,7 +1043,7 @@ Content`,
       });
 
       assertEquals(result.isError(), true);
-      assertEquals(result.unwrapError().code, "INPUT_ACCESS_ERROR");
+      assertEquals(result.unwrapError().code, "NO_FILES_FOUND");
     });
 
     await t.step("Example 20: Invalid JSON schema", async () => {

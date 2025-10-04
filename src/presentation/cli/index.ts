@@ -7,6 +7,7 @@ import { DenoFileSystemAdapter } from "../../infrastructure/adapters/deno-file-s
 import { DIRECTIVE_NAMES } from "../../domain/schema/constants/directive-names.ts";
 import denoConfig from "../../../deno.json" with { type: "json" };
 import { dirname, isAbsolute, join } from "@std/path";
+import { resolveInputToFiles } from "../../infrastructure/utils/input-resolver.ts";
 
 export interface CLIResponse {
   ok: boolean;
@@ -142,49 +143,25 @@ export class CLI {
       outputFormat = "markdown";
     }
 
-    // When shell expands glob, we get multiple input files
-    // We need to create a temporary directory strategy to process them all together
-    // For now, use the first input if single file, or create temp dir with all files
-    let inputPath: string;
+    // Resolve all input paths to actual markdown files
+    // This handles glob patterns, directories (recursive), and individual files
+    const resolvedFiles = await resolveInputToFiles(inputPaths);
 
-    if (inputPaths.length === 1) {
-      // Single file - use directly
-      inputPath = inputPaths[0];
-    } else {
-      // Multiple files from glob expansion
-      // Find the common parent directory of all files
-      const { dirname } = await import("@std/path");
-
-      // Get all unique directories
-      const dirs = inputPaths.map((p) => dirname(p));
-      const uniqueDirs = [...new Set(dirs)];
-
-      // Find common parent by splitting paths and finding common prefix
-      if (uniqueDirs.length === 1) {
-        // All files in same directory
-        inputPath = uniqueDirs[0];
-      } else {
-        // Files in multiple directories - find common ancestor
-        const pathParts = uniqueDirs.map((d) => d.split("/"));
-        const commonParts: string[] = [];
-
-        for (let i = 0; i < pathParts[0].length; i++) {
-          const part = pathParts[0][i];
-          if (pathParts.every((parts) => parts[i] === part)) {
-            commonParts.push(part);
-          } else {
-            break;
-          }
-        }
-
-        inputPath = commonParts.join("/") || ".";
-      }
+    if (resolvedFiles.length === 0) {
+      return {
+        ok: false,
+        error: new ProcessingError(
+          "No markdown files found matching the input patterns",
+          "NO_FILES_FOUND",
+          { inputPaths },
+        ),
+      };
     }
 
     const config: PipelineConfig = {
       schemaPath,
       templatePath,
-      inputPath,
+      inputPath: resolvedFiles,
       outputPath,
       outputFormat,
     };
@@ -248,7 +225,32 @@ export class CLI {
       return config;
     }
 
-    const pipelineConfig = config.data as PipelineConfig;
+    let pipelineConfig = config.data as PipelineConfig;
+
+    // Resolve input path to actual files if it's a single string
+    // This handles directories and glob patterns
+    if (typeof pipelineConfig.inputPath === "string") {
+      const resolvedFiles = await resolveInputToFiles([
+        pipelineConfig.inputPath,
+      ]);
+
+      if (resolvedFiles.length === 0) {
+        return {
+          ok: false,
+          error: new ProcessingError(
+            "No markdown files found matching the input pattern",
+            "NO_FILES_FOUND",
+            { inputPath: pipelineConfig.inputPath },
+          ),
+        };
+      }
+
+      pipelineConfig = {
+        ...pipelineConfig,
+        inputPath: resolvedFiles,
+      };
+    }
+
     const result = await this.orchestrator.execute(pipelineConfig);
 
     if (result.isError()) {

@@ -279,7 +279,7 @@ Deno.test("Pipeline Integration - error handling with missing input", async () =
 
   assertEquals(result.isError(), true);
   const error = result.unwrapError();
-  assertEquals(error.code, "INPUT_ACCESS_ERROR");
+  assertEquals(error.code, "NO_FILES_FOUND");
 
   await cleanupTestEnvironment();
 });

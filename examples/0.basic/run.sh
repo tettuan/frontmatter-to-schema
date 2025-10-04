@@ -19,14 +19,15 @@ echo "Project root: ${PROJECT_ROOT}"
 cd "${PROJECT_ROOT}"
 
 # Execute the CLI with correct paths relative to project root
+# Correct order: <schema> <output> <input...> [--verbose]
 echo "Executing command:"
-echo "./cli.ts examples/0.basic/registry_schema.json examples/0.basic/ examples/0.basic/output.json --verbose"
+echo "./cli.ts examples/0.basic/registry_schema.json examples/0.basic/output.json examples/0.basic/ --verbose"
 echo ""
 
 ./cli.ts \
   examples/0.basic/registry_schema.json \
-  examples/0.basic/ \
   examples/0.basic/output.json \
+  examples/0.basic/ \
   --verbose
 
 echo ""

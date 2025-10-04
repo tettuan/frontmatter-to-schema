@@ -3,27 +3,6 @@
   "description": "Requirement level traceability IDs",
   "req": [
     {
-      "id": "req:user:ai-settings-2c5e9b#20250909",
-      "derived_from": [
-        "req:auth:primary-key-5d8c2a#20250905"
-      ],
-      "trace_to": []
-    },
-    {
-      "id": "req:auth:primary-key-5d8c2a#20250909",
-      "derived_from": [],
-      "trace_to": []
-    },
-    {
-      "id": "req:workflow:automation-8f6a4c#20250909",
-      "derived_from": [
-        "req:api:deepresearch-3f8d2a#20250906",
-        "req:user:ai-settings-2c5e9b#20250906",
-        "req:crawler:ir-collect-9c4e3b#20250906"
-      ],
-      "trace_to": []
-    },
-    {
       "id": "req:api:deepresearch-3f8d2a#20250909",
       "derived_from": [
         "req:user:ai-settings-2c5e9b#20250906",
@@ -43,6 +22,27 @@
       "derived_from": [
         "req:auth:primary-key-5d8c2a#20250905",
         "req:user:ai-settings-2c5e9b#20250906"
+      ],
+      "trace_to": []
+    },
+    {
+      "id": "req:user:ai-settings-2c5e9b#20250909",
+      "derived_from": [
+        "req:auth:primary-key-5d8c2a#20250905"
+      ],
+      "trace_to": []
+    },
+    {
+      "id": "req:auth:primary-key-5d8c2a#20250909",
+      "derived_from": [],
+      "trace_to": []
+    },
+    {
+      "id": "req:workflow:automation-8f6a4c#20250909",
+      "derived_from": [
+        "req:api:deepresearch-3f8d2a#20250906",
+        "req:user:ai-settings-2c5e9b#20250906",
+        "req:crawler:ir-collect-9c4e3b#20250906"
       ],
       "trace_to": []
     }

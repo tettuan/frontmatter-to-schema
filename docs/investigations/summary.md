@@ -2,26 +2,33 @@
 
 ## Executive Summary
 
-The codebase demonstrates **strong compliance** with DDD and Totality principles. The investigation found:
+The codebase demonstrates **strong compliance** with DDD and Totality
+principles. The investigation found:
 
 - ✅ **Domain layer**: Excellent compliance (9/10)
 - ⚠️ **Application layer**: Good compliance with 5 minor violations
-- 🔍 **Architectural question**: Error handling approach (classes vs discriminated unions)
+- 🔍 **Architectural question**: Error handling approach (classes vs
+  discriminated unions)
 
 ## Key Findings
 
 ### Strengths
 
 1. **Result Pattern**: Full implementation with Railway pattern, safe unwrapping
-2. **Smart Constructors**: All value objects use private constructor + static create()
-3. **DDD Boundaries**: Clear separation of contexts (schema, frontmatter, template, aggregation)
-4. **No Domain Violations**: No type assertions, exceptions, or partial functions in domain layer
+2. **Smart Constructors**: All value objects use private constructor + static
+   create()
+3. **DDD Boundaries**: Clear separation of contexts (schema, frontmatter,
+   template, aggregation)
+4. **No Domain Violations**: No type assertions, exceptions, or partial
+   functions in domain layer
 
 ### Areas for Improvement
 
 1. **Type Assertions**: 5 instances in application layer (medium severity)
-2. **Deprecated unwrap()**: 4 usages that should be replaced with safe alternatives
-3. **Error Design**: Current class-based approach vs totality-recommended discriminated unions
+2. **Deprecated unwrap()**: 4 usages that should be replaced with safe
+   alternatives
+3. **Error Design**: Current class-based approach vs totality-recommended
+   discriminated unions
 
 ## Detailed Findings
 
@@ -30,6 +37,7 @@ The codebase demonstrates **strong compliance** with DDD and Totality principles
 **Score: 9/10**
 
 **Excellent**:
+
 - Result<T, E> pattern used consistently
 - Smart constructors (FilePath, TemplatePath)
 - No `as Type` casts
@@ -37,6 +45,7 @@ The codebase demonstrates **strong compliance** with DDD and Totality principles
 - No explicit `any` types
 
 **Minor Notes**:
+
 - Optional properties in configuration (acceptable use case)
 - Schema parameter optionality (could be more explicit, low priority)
 
@@ -45,11 +54,13 @@ The codebase demonstrates **strong compliance** with DDD and Totality principles
 **Score: 7.5/10**
 
 **Issues Found**:
+
 1. `configuration-strategy.ts`: Generic type assertion without validation
 2. `universal-pipeline.ts`: 4x deprecated `unwrap()` usage + type assertions
 3. `pipeline-orchestrator.ts`: Runtime type assertions
 
-**Impact**: Low - these don't cause runtime issues but violate totality principles
+**Impact**: Low - these don't cause runtime issues but violate totality
+principles
 
 ### Architecture Question: Error Handling
 
@@ -57,28 +68,30 @@ The codebase demonstrates **strong compliance** with DDD and Totality principles
 
 ```typescript
 export class SchemaError extends DomainError {
-  constructor(message: string, code: string, context?: Record<string, unknown>)
+  constructor(message: string, code: string, context?: Record<string, unknown>);
 }
 ```
 
 **Totality Approach**: Discriminated unions
+
 ```typescript
 type SchemaError =
   | { kind: "FileNotFound"; path: string }
-  | { kind: "InvalidJSON"; error: string }
+  | { kind: "InvalidJSON"; error: string };
 ```
 
 **Comparison**:
 
-| Criterion | Classes | Discriminated Unions |
-|-----------|---------|---------------------|
-| Type Safety | Good | Excellent |
-| Exhaustive Checking | instanceof | switch (no default) |
-| Familiarity | High | Medium |
-| Migration Effort | N/A | Major (breaking change) |
-| Alignment with totality.ja.md | Partial | Full |
+| Criterion                     | Classes    | Discriminated Unions    |
+| ----------------------------- | ---------- | ----------------------- |
+| Type Safety                   | Good       | Excellent               |
+| Exhaustive Checking           | instanceof | switch (no default)     |
+| Familiarity                   | High       | Medium                  |
+| Migration Effort              | N/A        | Major (breaking change) |
+| Alignment with totality.ja.md | Partial    | Full                    |
 
-**Recommendation**: Document current approach as acceptable alternative. Only migrate if team values stricter totality compliance over migration cost.
+**Recommendation**: Document current approach as acceptable alternative. Only
+migrate if team values stricter totality compliance over migration cost.
 
 ## Files Requiring Modification
 
@@ -151,9 +164,14 @@ See `violation-list.md` for detailed fixes.
 
 ## Conclusion
 
-The codebase is **already well-designed** with strong totality foundations. The recommended action is **Option A**: fix the minor violations in the application layer (4-6 hours effort) rather than undertaking a major refactoring.
+The codebase is **already well-designed** with strong totality foundations. The
+recommended action is **Option A**: fix the minor violations in the application
+layer (4-6 hours effort) rather than undertaking a major refactoring.
 
-The current error handling approach, while not strictly following totality.ja.md's discriminated union pattern, is functional and acceptable. A migration to discriminated unions would provide marginal benefits at significant cost.
+The current error handling approach, while not strictly following
+totality.ja.md's discriminated union pattern, is functional and acceptable. A
+migration to discriminated unions would provide marginal benefits at significant
+cost.
 
 ## Files Delivered
 
@@ -164,4 +182,6 @@ The current error handling approach, while not strictly following totality.ja.md
 
 ## Investigation Complete ✅
 
-**Recommendation to project owner**: Proceed with Option A (fix type assertions and unwrap() calls) as these are quick wins that improve totality compliance without major refactoring.
+**Recommendation to project owner**: Proceed with Option A (fix type assertions
+and unwrap() calls) as these are quick wins that improve totality compliance
+without major refactoring.

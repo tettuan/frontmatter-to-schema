@@ -436,7 +436,7 @@ Deno.test("CLI E2E - error handling with missing input file", async () => {
   ]);
 
   assertEquals(result.ok, false);
-  assertEquals(result.error?.code, "INPUT_ACCESS_ERROR");
+  assertEquals(result.error?.code, "NO_FILES_FOUND");
 
   await cleanupE2EEnvironment();
 });
@@ -488,7 +488,7 @@ Deno.test("CLI E2E - error handling with empty directory", async () => {
   ]);
 
   assertEquals(result.ok, false);
-  assertEquals(result.error?.code, "NO_DOCUMENTS_FOUND");
+  assertEquals(result.error?.code, "NO_FILES_FOUND");
 
   await cleanupE2EEnvironment();
 });
@@ -624,6 +624,214 @@ Deno.test("CLI E2E - concurrent CLI instances", async () => {
       () => false,
     );
     assertEquals(outputExists, true);
+  }
+
+  await cleanupE2EEnvironment();
+});
+
+Deno.test("CLI E2E - multi-directory glob pattern (Issue #1285)", async () => {
+  await setupE2EEnvironment();
+
+  // Clean up docs directory to remove doc1.md and doc2.md created by setup
+  const docsDir = join(TEST_FIXTURES_DIR, "docs");
+  await Deno.remove(docsDir, { recursive: true }).catch(() => {});
+
+  // Create multi-directory structure
+  const frontendDir = join(TEST_FIXTURES_DIR, "docs/frontend");
+  const backendDir = join(TEST_FIXTURES_DIR, "docs/backend");
+  const apiDir = join(TEST_FIXTURES_DIR, "docs/api");
+
+  await ensureDir(frontendDir);
+  await ensureDir(backendDir);
+  await ensureDir(apiDir);
+
+  // Create documents in different subdirectories
+  const doc1 = `---
+title: "Frontend Component"
+category: "frontend"
+tags: ["react", "component"]
+published: true
+---
+# Frontend Component`;
+
+  const doc2 = `---
+title: "Backend Database"
+category: "backend"
+tags: ["database", "postgresql"]
+published: true
+---
+# Backend Database`;
+
+  const doc3 = `---
+title: "REST API"
+category: "api"
+tags: ["rest", "api"]
+published: false
+---
+# REST API`;
+
+  await Deno.writeTextFile(join(frontendDir, "component.md"), doc1);
+  await Deno.writeTextFile(join(backendDir, "database.md"), doc2);
+  await Deno.writeTextFile(join(apiDir, "rest-api.md"), doc3);
+
+  // Create schema with x-template
+  const schema = {
+    type: "object",
+    properties: {
+      documents: {
+        type: "array",
+        "x-frontmatter-part": true,
+        items: {
+          type: "object",
+          properties: {
+            title: { type: "string" },
+            category: { type: "string" },
+            tags: { type: "array", items: { type: "string" } },
+            published: { type: "boolean" },
+          },
+        },
+      },
+      categories: {
+        type: "array",
+        "x-derived-from": "documents[].category",
+        "x-derived-unique": true,
+        items: { type: "string" },
+      },
+    },
+    "x-template": "template.json",
+  };
+
+  const schemaPath = join(TEST_FIXTURES_DIR, "multi-dir-schema.json");
+  await Deno.writeTextFile(schemaPath, JSON.stringify(schema, null, 2));
+
+  // Create template
+  const template = {
+    documents: "{@items}",
+    categories: "{categories}",
+  };
+  const templatePath = join(TEST_FIXTURES_DIR, "template.json");
+  await Deno.writeTextFile(templatePath, JSON.stringify(template, null, 2));
+
+  const cli = CLI.create();
+  assertEquals(cli.ok, true);
+  const cliInstance = cli.data!;
+
+  const outputPath = join(TEST_DIR, "multi-dir-output.json");
+
+  // Test 1: Glob pattern across multiple directories (SHOULD WORK but currently fails)
+  // Pattern: docs/**/*.md expands to files in frontend/, backend/, api/
+  const globPattern = join(TEST_FIXTURES_DIR, "docs/**/*.md");
+  const result = await cliInstance.run([
+    schemaPath,
+    outputPath,
+    globPattern,
+    "--verbose",
+  ]);
+
+  // This currently fails with "No valid documents found in directory"
+  // because CLI finds common parent "docs/" which has no .md files directly
+  assertEquals(
+    result.ok,
+    true,
+    "Multi-directory glob pattern should process all files (Issue #1285)",
+  );
+
+  if (result.ok) {
+    const outputContent = await Deno.readTextFile(outputPath);
+    const outputJson = JSON.parse(outputContent);
+    assertEquals(
+      outputJson.documents.length,
+      3,
+      "Should process all 3 documents",
+    );
+    assertEquals(
+      outputJson.categories.length,
+      3,
+      "Should derive 3 unique categories",
+    );
+  }
+
+  await cleanupE2EEnvironment();
+});
+
+Deno.test("CLI E2E - recursive directory processing (Issue #1285)", async () => {
+  await setupE2EEnvironment();
+
+  // Clean up docs directory to remove doc1.md and doc2.md created by setup
+  const docsPath = join(TEST_FIXTURES_DIR, "docs");
+  await Deno.remove(docsPath, { recursive: true }).catch(() => {});
+
+  // Reuse the same multi-directory structure
+  const frontendDir = join(TEST_FIXTURES_DIR, "docs/frontend");
+  const backendDir = join(TEST_FIXTURES_DIR, "docs/backend");
+
+  await ensureDir(frontendDir);
+  await ensureDir(backendDir);
+
+  const doc1 = `---
+title: "Doc 1"
+category: "frontend"
+---
+# Doc 1`;
+
+  const doc2 = `---
+title: "Doc 2"
+category: "backend"
+---
+# Doc 2`;
+
+  await Deno.writeTextFile(join(frontendDir, "doc1.md"), doc1);
+  await Deno.writeTextFile(join(backendDir, "doc2.md"), doc2);
+
+  const schema = {
+    type: "object",
+    properties: {
+      documents: {
+        type: "array",
+        "x-frontmatter-part": true,
+        items: { type: "object" },
+      },
+    },
+    "x-template": "template.json",
+  };
+
+  const schemaPath = join(TEST_FIXTURES_DIR, "recursive-schema.json");
+  await Deno.writeTextFile(schemaPath, JSON.stringify(schema, null, 2));
+
+  const template = { documents: "{@items}" };
+  const templatePath = join(TEST_FIXTURES_DIR, "template.json");
+  await Deno.writeTextFile(templatePath, JSON.stringify(template, null, 2));
+
+  const cli = CLI.create();
+  assertEquals(cli.ok, true);
+  const cliInstance = cli.data!;
+
+  const outputPath = join(TEST_DIR, "recursive-output.json");
+
+  // Test 2: Directory path (should recursively search subdirectories)
+  const docsDir = join(TEST_FIXTURES_DIR, "docs");
+  const result = await cliInstance.run([
+    schemaPath,
+    outputPath,
+    docsDir,
+    "--verbose",
+  ]);
+
+  // This currently fails because DirectoryStrategy only reads immediate children
+  assertEquals(
+    result.ok,
+    true,
+    "Directory processing should be recursive (Issue #1285)",
+  );
+
+  if (result.ok) {
+    const outputContent = await Deno.readTextFile(outputPath);
+    const outputJson = JSON.parse(outputContent);
+    assertEquals(
+      outputJson.documents.length,
+      2,
+      "Should find documents in subdirectories",
+    );
   }
 
   await cleanupE2EEnvironment();

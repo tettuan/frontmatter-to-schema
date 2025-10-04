@@ -1,0 +1,27 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "title": "Documentation Index Schema",
+  "x-template": "template.json",
+  "properties": {
+    "documents": {
+      "type": "array",
+      "x-frontmatter-part": true,
+      "items": {
+        "type": "object",
+        "properties": {
+          "title": { "type": "string" },
+          "category": { "type": "string" },
+          "tags": { "type": "array", "items": { "type": "string" } },
+          "published": { "type": "boolean" }
+        }
+      }
+    },
+    "categories": {
+      "type": "array",
+      "x-derived-from": "documents[].category",
+      "x-derived-unique": true,
+      "items": { "type": "string" }
+    }
+  }
+}

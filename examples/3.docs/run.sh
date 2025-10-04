@@ -35,11 +35,11 @@ for level in req spec design impl test; do
     echo "Processing ${level} level..."
 
     # Run the frontmatter-to-schema CLI
-    # Arguments: <schema> <input> <output>
+    # Correct order: <schema> <output> <input...> [--verbose]
     "$CLI" \
         "${SPEC_TRACE_DIR}/index_${level}_schema.json" \
-        "$DOCS_DIR" \
         "${SPEC_TRACE_DIR}/index/${level}_index.json" \
+        "$DOCS_DIR" \
         --verbose
 
     if [ $? -eq 0 ]; then

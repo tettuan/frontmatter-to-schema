@@ -1,0 +1,70 @@
+{
+  "version": "5",
+  "specifiers": {
+    "jsr:@halvardm/jmespath@0.17": "0.17.0",
+    "jsr:@std/assert@1": "1.0.14",
+    "jsr:@std/front-matter@1.0.5": "1.0.5",
+    "jsr:@std/fs@1.0.8": "1.0.8",
+    "jsr:@std/internal@^1.0.10": "1.0.10",
+    "jsr:@std/path@^1.0.8": "1.1.2",
+    "jsr:@std/path@^1.1.2": "1.1.2",
+    "jsr:@std/yaml@1.0.5": "1.0.5",
+    "jsr:@std/yaml@^1.0.5": "1.0.9"
+  },
+  "jsr": {
+    "@halvardm/jmespath@0.17.0": {
+      "integrity": "9a22c9596464396efc3f3bbe4aab6b55346db6f9f06e108376faa19ceb50d97b",
+      "dependencies": [
+        "jsr:@std/assert"
+      ]
+    },
+    "@std/assert@1.0.14": {
+      "integrity": "68d0d4a43b365abc927f45a9b85c639ea18a9fab96ad92281e493e4ed84abaa4",
+      "dependencies": [
+        "jsr:@std/internal"
+      ]
+    },
+    "@std/front-matter@1.0.5": {
+      "integrity": "abddc64030a33eb5bc524b8c73e7c417cea09177aaeb4abf75a56b540c4b6e60",
+      "dependencies": [
+        "jsr:@std/yaml@^1.0.5"
+      ]
+    },
+    "@std/fs@1.0.8": {
+      "integrity": "161c721b6f9400b8100a851b6f4061431c538b204bb76c501d02c508995cffe0",
+      "dependencies": [
+        "jsr:@std/path@^1.0.8"
+      ]
+    },
+    "@std/internal@1.0.10": {
+      "integrity": "e3be62ce42cab0e177c27698e5d9800122f67b766a0bea6ca4867886cbde8cf7"
+    },
+    "@std/path@1.1.2": {
+      "integrity": "c0b13b97dfe06546d5e16bf3966b1cadf92e1cc83e56ba5476ad8b498d9e3038",
+      "dependencies": [
+        "jsr:@std/internal"
+      ]
+    },
+    "@std/yaml@1.0.5": {
+      "integrity": "71ba3d334305ee2149391931508b2c293a8490f94a337eef3a09cade1a2a2742"
+    },
+    "@std/yaml@1.0.9": {
+      "integrity": "6bad3dc766dd85b4b37eabcba81b6aa4eac7a392792ae29abcfb0f90602d55bb"
+    }
+  },
+  "workspace": {
+    "dependencies": [
+      "jsr:@halvardm/jmespath@0.17",
+      "jsr:@std/assert@^1.0.14",
+      "jsr:@std/cli@1.0.9",
+      "jsr:@std/crypto@1.0.3",
+      "jsr:@std/front-matter@1.0.5",
+      "jsr:@std/fs@1.0.8",
+      "jsr:@std/path@^1.1.2",
+      "jsr:@std/testing@^1.0.15",
+      "jsr:@std/yaml@1.0.5",
+      "jsr:@tettuan/breakdownlogger@1",
+      "npm:@anthropic-ai/claude-code@^1.0.89"
+    ]
+  }
+}

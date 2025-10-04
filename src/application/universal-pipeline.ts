@@ -4,13 +4,16 @@ import { Schema } from "../domain/schema/index.ts";
 import { Template } from "../domain/template/index.ts";
 import { MarkdownDocument } from "../domain/frontmatter/entities/markdown-document.ts";
 import { FileSystemPort } from "../infrastructure/ports/file-system-port.ts";
-import {
-  ConfigurableDocumentFilter,
-  DocumentLoader,
-  InputProcessingStrategy,
-  InputProcessingStrategyFactory,
-} from "./strategies/input-processing-strategy.ts";
 import { ConfigurationManager } from "./strategies/configuration-strategy.ts";
+
+/**
+ * Document loader interface for dependency injection.
+ */
+export interface DocumentLoader {
+  loadMarkdownDocument(
+    filePath: string,
+  ): Promise<Result<MarkdownDocument, ProcessingError>>;
+}
 
 /**
  * Universal Pipeline Configuration
@@ -18,11 +21,10 @@ import { ConfigurationManager } from "./strategies/configuration-strategy.ts";
 export interface UniversalPipelineConfig {
   readonly schemaPath: string;
   readonly templatePath: string;
-  readonly inputPath: string;
+  readonly inputPath: string | string[];
   readonly outputPath: string;
   readonly outputFormat?: string;
   readonly customConfiguration?: ConfigurationManager;
-  readonly inputStrategies?: InputProcessingStrategy[];
 }
 
 /**
@@ -32,7 +34,6 @@ export interface PipelineContext {
   readonly config: UniversalPipelineConfig;
   readonly fileSystem: FileSystemPort;
   readonly configManager: ConfigurationManager;
-  readonly inputStrategies: InputProcessingStrategy[];
   readonly documentLoader: DocumentLoader;
 }
 
@@ -223,32 +224,67 @@ export class TemplateLoadingStage implements PipelineStage<string, Template> {
  * Input processing stage using strategies
  */
 export class InputProcessingStage
-  implements PipelineStage<string, MarkdownDocument[]> {
+  implements PipelineStage<string | string[], MarkdownDocument[]> {
   readonly stageName = "input-processing";
 
   async execute(
-    inputPath: string,
+    inputPath: string | string[],
     context: PipelineContext,
   ): Promise<Result<MarkdownDocument[], ProcessingError>> {
-    // Select appropriate strategy
-    const strategyResult = await InputProcessingStrategyFactory.selectStrategy(
-      context.inputStrategies,
-      inputPath,
-      context.fileSystem,
-    );
+    // Handle array of file paths directly
+    if (Array.isArray(inputPath)) {
+      const documents: MarkdownDocument[] = [];
+      const errors: ProcessingError[] = [];
 
-    if (strategyResult.isError()) {
-      return Result.error(strategyResult.unwrapError());
+      for (const path of inputPath) {
+        const docResult = await context.documentLoader.loadMarkdownDocument(
+          path,
+        );
+        if (docResult.isOk()) {
+          documents.push(docResult.unwrap());
+        } else {
+          const error = docResult.unwrapError();
+          errors.push(error);
+
+          // For single-file arrays, propagate parse errors immediately
+          // For multi-file arrays, continue processing to handle mixed valid/invalid files
+          if (
+            inputPath.length === 1 &&
+            (error.code === "FRONTMATTER_PARSE_ERROR" ||
+              error.code === "MARKDOWN_PARSE_ERROR")
+          ) {
+            return Result.error(error);
+          }
+        }
+      }
+
+      if (documents.length === 0) {
+        // If we have collected errors, return the first one
+        if (errors.length > 0) {
+          return Result.error(errors[0]);
+        }
+
+        return Result.error(
+          new ProcessingError(
+            "No valid documents found in file list",
+            "NO_DOCUMENTS_FOUND",
+            { inputPaths: inputPath },
+          ),
+        );
+      }
+
+      return Result.ok(documents);
     }
 
-    const strategy = strategyResult.unwrap();
-
-    // Process input using selected strategy
-    return await strategy.processInput(
+    // Handle single path - CLI has already resolved it to an actual file
+    const docResult = await context.documentLoader.loadMarkdownDocument(
       inputPath,
-      context.fileSystem,
-      context.documentLoader,
     );
+    if (docResult.isError()) {
+      return Result.error(docResult.unwrapError());
+    }
+
+    return Result.ok([docResult.unwrap()]);
   }
 }
 
@@ -272,23 +308,10 @@ export class UniversalPipeline {
     const configManager = config.customConfiguration ||
       new ConfigurationManager();
 
-    // Get default extensions from configuration
-    const extensionsResult = configManager.getArrayDefault<string>(
-      "inputExtensions",
-    );
-    const extensions = extensionsResult.isOk()
-      ? extensionsResult.unwrap()
-      : [".md", ".markdown"];
-    const documentFilter = new ConfigurableDocumentFilter(new Set(extensions));
-
-    const inputStrategies = config.inputStrategies ||
-      InputProcessingStrategyFactory.createDefaultStrategies(documentFilter);
-
     const context: PipelineContext = {
       config,
       fileSystem,
       configManager,
-      inputStrategies,
       documentLoader,
     };
 
@@ -331,7 +354,10 @@ export class UniversalPipeline {
     }
 
     // Stage 3: Process Input
-    const inputStageResult = this.getStage<string, MarkdownDocument[]>(
+    const inputStageResult = this.getStage<
+      string | string[],
+      MarkdownDocument[]
+    >(
       "input-processing",
     );
     if (inputStageResult.isError()) {
@@ -406,7 +432,7 @@ export interface UniversalPipelineResult {
   readonly metadata: {
     readonly schemaPath: string;
     readonly templatePath: string;
-    readonly inputPath: string;
+    readonly inputPath: string | string[];
     readonly outputPath: string;
     readonly processedDocuments: number;
   };

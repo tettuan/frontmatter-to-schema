@@ -10,10 +10,10 @@ import {
 import { FrontmatterData } from "../../domain/frontmatter/value-objects/frontmatter-data.ts";
 import { FileSystemPort } from "../../infrastructure/ports/file-system-port.ts";
 import {
+  DocumentLoader,
   UniversalPipeline,
   UniversalPipelineConfig,
 } from "../universal-pipeline.ts";
-import { DocumentLoader } from "../strategies/input-processing-strategy.ts";
 import { ConfigurationManager } from "../strategies/configuration-strategy.ts";
 import { TemplateSchemaCoordinator } from "./template-schema-coordinator.ts";
 import { TemplateRenderer } from "../../domain/template/services/template-renderer.ts";
@@ -32,6 +32,7 @@ import { ItemsExpander } from "../../domain/template/services/items-expander.ts"
 import { TemplatePath } from "../../domain/template/value-objects/template-path.ts";
 import { Template } from "../../domain/template/entities/template.ts";
 import { createFileError } from "../../domain/shared/types/file-errors.ts";
+import { resolveInputToFiles } from "../../infrastructure/utils/input-resolver.ts";
 
 /**
  * Template loader adapter for ItemsProcessor
@@ -108,7 +109,7 @@ class FileSystemTemplateLoader implements ItemsTemplateLoader {
 export interface PipelineConfig {
   readonly schemaPath: string;
   readonly templatePath: string;
-  readonly inputPath: string;
+  readonly inputPath: string | string[];
   readonly outputPath: string;
   readonly outputFormat?: "json" | "yaml" | "xml" | "markdown";
 }
@@ -281,11 +282,74 @@ export class PipelineOrchestrator implements DocumentLoader {
   async execute(
     config: PipelineConfig,
   ): Promise<Result<PipelineResult, ProcessingError>> {
+    // Resolve input path to actual files if it's a single string
+    // This handles directories and glob patterns
+    let resolvedInputPath: string | string[] = config.inputPath;
+
+    if (typeof config.inputPath === "string") {
+      // Check if the input is a file or directory
+      const statResult = await this.fileSystem.stat(config.inputPath);
+
+      if (statResult.isOk()) {
+        const info = statResult.unwrap();
+
+        if (info.isFile) {
+          // Single file: use as-is
+          resolvedInputPath = [config.inputPath];
+        } else if (info.isDirectory) {
+          // Directory: read directory contents using FileSystemPort
+          const dirResult = await this.fileSystem.readDir(config.inputPath);
+
+          if (dirResult.isError()) {
+            return Result.error(
+              new ProcessingError(
+                `Failed to read directory: ${dirResult.unwrapError().kind}`,
+                "DIRECTORY_READ_ERROR",
+                { inputPath: config.inputPath },
+              ),
+            );
+          }
+
+          const entries = dirResult.unwrap();
+          const markdownFiles = entries
+            .filter((entry) => entry.isFile && /\.md(own)?$/.test(entry.name))
+            .map((entry) => `${config.inputPath}/${entry.name}`);
+
+          if (markdownFiles.length === 0) {
+            return Result.error(
+              new ProcessingError(
+                "No markdown files found in directory",
+                "NO_DOCUMENTS_FOUND",
+                { inputPath: config.inputPath },
+              ),
+            );
+          }
+
+          resolvedInputPath = markdownFiles;
+        }
+      } else {
+        // Glob pattern or non-existent path: use utility (requires real filesystem)
+        const resolvedFiles = await resolveInputToFiles([config.inputPath]);
+
+        if (resolvedFiles.length === 0) {
+          return Result.error(
+            new ProcessingError(
+              "No markdown files found matching the input pattern",
+              "NO_FILES_FOUND",
+              { inputPath: config.inputPath },
+            ),
+          );
+        }
+
+        resolvedInputPath = resolvedFiles;
+      }
+    }
+
     // Create Universal Pipeline configuration
     const pipelineConfig: UniversalPipelineConfig = {
       schemaPath: config.schemaPath,
       templatePath: config.templatePath,
-      inputPath: config.inputPath,
+      inputPath: resolvedInputPath,
       outputPath: config.outputPath,
       outputFormat: config.outputFormat,
       customConfiguration: this.configManager,
@@ -321,6 +385,11 @@ export class PipelineOrchestrator implements DocumentLoader {
     }
 
     // Phase 1: Apply per-file directives to each document BEFORE template processing
+    // DEBUG: Log document count
+    if (typeof Deno !== "undefined" && Deno.env.get("DEBUG_PIPELINE")) {
+      console.log(`[DEBUG] Processing ${result.documents.length} documents`);
+    }
+
     const phase1ProcessedDocuments: MarkdownDocument[] = [];
     for (const document of result.documents) {
       const phase1Result = this.phase1DirectiveProcessor.processDocument(
@@ -342,11 +411,24 @@ export class PipelineOrchestrator implements DocumentLoader {
       // === COORDINATOR PATH (for schemas with x-template) ===
       // Extract FrontmatterData from documents for coordinator
       // Documents without frontmatter get empty FrontmatterData
+      // DEBUG: Log frontmatter extraction
+      if (typeof Deno !== "undefined" && Deno.env.get("DEBUG_PIPELINE")) {
+        console.log(
+          `[DEBUG] Extracting frontmatter from ${phase1ProcessedDocuments.length} documents`,
+        );
+      }
+
       const frontmatterDataArray: FrontmatterData[] = [];
       for (const doc of phase1ProcessedDocuments) {
         const frontmatter = doc.getFrontmatter();
         if (frontmatter) {
           frontmatterDataArray.push(frontmatter);
+          if (typeof Deno !== "undefined" && Deno.env.get("DEBUG_PIPELINE")) {
+            console.log(
+              `[DEBUG] Document has frontmatter:`,
+              Object.keys(frontmatter.getData()),
+            );
+          }
         } else {
           // Create empty FrontmatterData for documents without frontmatter
           const emptyDataResult = FrontmatterData.create({});

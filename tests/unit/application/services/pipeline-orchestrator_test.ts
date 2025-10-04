@@ -357,7 +357,7 @@ Deno.test("PipelineOrchestrator - input file not found", async () => {
 
   assertEquals(result.isError(), true);
   const error = result.unwrapError();
-  assertEquals(error.code, "INPUT_ACCESS_ERROR");
+  assertEquals(error.code, "NO_FILES_FOUND");
 });
 
 Deno.test("PipelineOrchestrator - invalid input path type", async () => {
@@ -375,7 +375,7 @@ Deno.test("PipelineOrchestrator - invalid input path type", async () => {
 
   assertEquals(result.isError(), true);
   const error = result.unwrapError();
-  assertEquals(error.code, "INPUT_ACCESS_ERROR");
+  assertEquals(error.code, "NO_FILES_FOUND");
 });
 
 Deno.test("PipelineOrchestrator - directory with no markdown files", async () => {

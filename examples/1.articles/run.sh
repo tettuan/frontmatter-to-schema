@@ -30,10 +30,10 @@ echo "Output: $OUTPUT_FILE"
 echo
 
 # Execute frontmatter-to-schema command
-"$CLI" \
+deno run --allow-all "$CLI" \
   "$SCHEMA_FILE" \
-  "$DOCS_DIR" \
   "$OUTPUT_FILE" \
+  "$DOCS_DIR" \
   --verbose
 
 # Capture the exit status
