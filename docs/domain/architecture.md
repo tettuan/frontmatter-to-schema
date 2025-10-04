@@ -62,6 +62,7 @@ class SchemaProcessor implements Totality<SchemaCore> {
 ```typescript
 interface FrontmatterCore {
   readonly extracted: RawFrontmatter;
+  readonly transformed: SchemaCompliantData;  // ← ★ ADDED
   readonly parsed: ParsedData;
   readonly validated: ValidatedData;
 }
@@ -69,15 +70,29 @@ interface FrontmatterCore {
 class FrontmatterProcessor implements Totality<FrontmatterCore> {
   process(
     markdown: MarkdownContent,
+    schema: SchemaDefinition,  // ← ★ ADDED
   ): Result<FrontmatterCore, FrontmatterError> {
     return this.extract(markdown)
+      .chain((raw) => this.transformToSchema(raw, schema))  // ← ★ ADDED
       .chain(this.parse)
       .chain(this.validate);
+  }
+
+  private transformToSchema(
+    raw: RawFrontmatter,
+    schema: SchemaDefinition,
+  ): Result<SchemaCompliantData, TransformationError> {
+    // Uses yaml-schema-mapper sub-module
+    return mapDataToSchema({
+      schema: schema,
+      data: raw,
+      options: { coerceTypes: true },
+    });
   }
 }
 ```
 
-**生命線**: Markdown文書からの構造化データ抽出
+**生命線**: Markdown文書からの構造化データ抽出 → **Schema準拠データへの変換**
 
 ### 3. Template適用中心線
 

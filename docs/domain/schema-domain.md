@@ -1,9 +1,79 @@
 # Schemaドメイン
 
+## Schema処理アーキテクチャ
+
+Schema処理は以下の2つのレイヤーで構成される：
+
+### Layer 0: Schema変換 (yaml-schema-mapper)
+
+**目的**: 生フロントマターをSchema定義に基づいて変換
+
+**処理内容**:
+
+- プロパティ名マッピング（`x-map-from` ディレクティブの処理）
+- 型変換（array ↔ single value, string → number/boolean など）
+- Schema検証（required, enum, pattern など）
+
+**適用タイミング**: フロントマター抽出直後、x-* ディレクティブ処理の前
+
+**モジュール**: `sub_modules/yaml-schema-mapper/`
+
+**重要**: Layer 0 は Schema ドメインではなく Frontmatter ドメインで実行されるが、
+Schema定義を参照するため Schema ドメインの概念的な一部として扱う。
+
+### Layer 1: ディレクティブ処理
+
+**目的**: Schema定義内の x-* ディレクティブを処理
+
+**処理内容**:
+
+- x-frontmatter-part: 対象配列の特定
+- x-flatten-arrays: 配列フラット化
+- x-derived-from: 値の集約（data-path-resolver 使用）
+- x-derived-unique: 重複削除
+- x-template-\*: テンプレート指定
+
+**適用タイミング**: Layer 0 完了後
+
+---
+
 ## Schema拡張プロパティ (x-*)
 
 本アプリケーション特有のSchema拡張プロパティを定義する。これらは標準JSON
 Schemaに加えて、アプリケーション固有の機能を提供する。
+
+### x-map-from (Layer 0 処理)
+
+**処理レイヤー**: Layer 0 (yaml-schema-mapper)
+
+プロパティ名の明示的なマッピングを指定。生フロントマターのプロパティ名とSchema定義のプロパティ名が異なる場合に使用。
+
+**形式**: string | string[] (fallback)
+
+```json
+{
+  "properties": {
+    "input_file": {
+      "type": "boolean",
+      "x-map-from": "file"  // "file" → "input_file" へマッピング
+    },
+    "displayName": {
+      "type": "string",
+      "x-map-from": ["fullName", "name", "userName"]  // フォールバック
+    }
+  }
+}
+```
+
+**処理タイミング**: Stage 0 (yaml-schema-mapper による変換時)
+
+**フォールバック動作**:
+
+- 配列で指定された場合、先頭から順に検索
+- 最初に見つかった値を使用
+- すべて見つからない場合は undefined
+
+**重要**: x-map-from は他の x-\* ディレクティブより前に処理される。
 
 ### x-template
 

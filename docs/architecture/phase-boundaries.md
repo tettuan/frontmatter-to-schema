@@ -26,19 +26,63 @@ per-file directives.
 - No cross-file dependencies
 - Preserves document-level data structure
 
-### Directives Processed
+### Sub-Phase 1A: Frontmatter Extraction and Schema Transformation
 
-Stage 1-5 directives (per schema-directives-specification.md):
+**Purpose**: Extract raw frontmatter and transform to schema-compliant data
+
+**Processing Steps**:
+
+1. Extract raw YAML frontmatter (`@std/front-matter`)
+2. **Transform to schema-compliant data** (`yaml-schema-mapper` sub-module)
+   - Property name mapping (file → input_file, snake_case → camelCase, etc.)
+   - Type coercion ([false] → false, "42" → 42, etc.)
+   - Schema validation (required, enum, pattern)
+   - x-map-from directive processing (string | string[] fallback)
+3. Create FrontmatterData instance with schema-compliant data
+
+**Implementation Mapping**:
+
+```
+src/domain/frontmatter/
+├── services/
+│   └── frontmatter-parsing-service.ts  # Uses yaml-schema-mapper
+├── value-objects/
+│   └── frontmatter-data.ts             # Integration point
+└── sub_modules/yaml-schema-mapper/     # Schema transformation module
+    ├── src/
+    │   ├── mod.ts                      # Public API: mapDataToSchema()
+    │   ├── property-mapper.ts          # Property name mapping
+    │   ├── type-transformer.ts         # Type coercion
+    │   └── validator.ts                # Schema validation
+```
+
+**Data Flow**:
+
+```
+Raw YAML → yaml-schema-mapper → Schema-compliant data → FrontmatterData
+```
+
+**Key Module**: `sub_modules/yaml-schema-mapper/`
+
+- Responsibility: Raw frontmatter → Schema-compliant transformation
+- Independence: Zero dependencies on parent project
+- Stage: Stage 0 (before all directive processing)
+
+### Sub-Phase 1B: Directive Application
+
+**Purpose**: Apply per-file directives to schema-compliant data
+
+**Directives Processed**: Stage 1-5 directives (per
+schema-directives-specification.md)
 
 - Stage 1: `x-frontmatter-part` - Identify target array
 - Stage 2: `x-flatten-arrays` - Flatten specified property (optional)
 - Stage 3: `x-jmespath-filter` - Apply filtering
-- Stage 4: `x-derived-from` - Collect values from paths
+- Stage 4: `x-derived-from` - Collect values from paths (uses
+  data-path-resolver)
 - Stage 5: `x-derived-unique` - Remove duplicates
 
-### Implementation Mapping
-
-**Primary Components:**
+**Implementation Mapping**:
 
 ```
 src/domain/document/
@@ -52,19 +96,31 @@ src/domain/document/
 
 1. Read markdown file (`DocumentLoaderService`)
 2. Extract frontmatter (`FrontmatterParser`)
-3. Apply Stage 1-5 directives (per-file scope)
-4. Preserve structure (default) or flatten arrays (if `x-flatten-arrays`)
+3. **Transform to schema (yaml-schema-mapper)** ← Stage 0
+4. Apply Stage 1-5 directives (per-file scope)
+5. Preserve structure (default) or flatten arrays (if `x-flatten-arrays`)
 
-### Data Flow
+### Combined Data Flow
 
 ```
-Markdown File → FrontmatterParser → Schema Validation → Directive Application → Intermediate Result
+Markdown File
+  ↓
+FrontmatterParser (raw YAML extraction)
+  ↓
+yaml-schema-mapper (Stage 0: Schema transformation)
+  ↓
+Schema-compliant data
+  ↓
+Directive Application (Stage 1-5)
+  ↓
+Intermediate Result
 ```
 
 ### Phase 1 Output
 
 Intermediate data structure preserving:
 
+- **Schema-compliant data structure** (from Stage 0)
 - Original frontmatter structure (unless flattened)
 - Applied per-file directives
 - Individual document metadata

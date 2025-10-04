@@ -115,6 +115,109 @@ Schemaは、利用すべきテンプレートファイル名を有する。
 一覧のなかで、どの配列構造が各マークダウンファイルの処理に用いれるかは、`"x-frontmatter-part": true`
 で判定する。
 
+## サブモジュール構成
+
+本システムは、以下の独立したサブモジュールを使用して処理を実現する：
+
+### 1. yaml-schema-mapper
+
+**責任範囲**: フロントマターデータのSchema変換
+
+- **適用フェーズ**: フロントマター抽出直後（成果B → 成果C）
+- **処理内容**:
+  - プロパティ名のマッピング（`file` → `input_file` など）
+  - 型変換（`[false]` → `false`、`"42"` → `42` など）
+  - Schema準拠データへの変換
+- **使用場所**: `FrontmatterData.create()` 内部
+- **モジュールパス**: `sub_modules/yaml-schema-mapper/`
+
+**詳細**:
+
+フロントマターの多様な記法（snake_case, camelCase, kebab-case等）をSchema定義に基づいて正規化し、型変換を行う。
+
+- Property mapping: Exact match → Case-insensitive → Heuristic matching
+- x-map-from directive: 明示的なプロパティマッピング指定
+- Type coercion: Array ↔ single value, string → number/boolean など
+- Validation: Required properties, enum, pattern など
+
+**変換例**:
+
+```yaml
+# Input (frontmatter)
+file: [false]
+stdin: [true]
+
+# Schema
+properties:
+  input_file: { type: "boolean", x-map-from: "file" }
+  stdin: { type: "boolean" }
+
+# Output (schema-compliant)
+input_file: false
+stdin: true
+```
+
+### 2. data-path-resolver
+
+**責任範囲**: `x-derived-from` ディレクティブのパス式解決
+
+- **適用フェーズ**: フェーズ2（全体統合）の集約処理
+- **処理内容**:
+  - ドット記法によるネストアクセス (`user.profile.name`)
+  - 配列展開構文 (`items[]`)
+  - プロパティ付き配列展開 (`items[].name`)
+  - 二重展開によるフラット化 (`articles[].tags[]`)
+- **使用場所**: `schema-directive-processor.ts` 内の `x-derived-from` 処理
+- **モジュールパス**: `sub_modules/data-path-resolver/`
+
+**重要**: テンプレート変数（`{variable.path}`）の解決には使用しない。
+
+### 3. json-template
+
+**責任範囲**: テンプレート変数の置換処理
+
+- **適用フェーズ**: フェーズ3（テンプレート展開）
+- **処理内容**:
+  - `{variable.path}` 形式の変数置換
+  - ドット記法による階層データアクセス
+  - 配列要素への直接アクセス (`{items[0].name}`)
+- **使用場所**: `template.ts` 内の `x-template-items` 処理
+- **モジュールパス**: `sub_modules/json-template/`
+
+**重要**: `{@items}` 記法による配列展開は含まれない（親システム側で実装）。
+
+### モジュール責任の明確な区別
+
+| 項目 | yaml-schema-mapper | data-path-resolver | json-template |
+|------|-------------------|-------------------|---------------|
+| **適用フェーズ** | フロントマター解析直後 | フェーズ2（全体統合） | フェーズ3（テンプレート展開） |
+| **処理対象** | 生YAML → Schema準拠データ | `x-derived-from` パス式 | テンプレート内 `{variable.path}` |
+| **配列展開構文** | ❌ | ✅ (`items[]`) | ❌ |
+| **型変換** | ✅ | ❌ | ❌ |
+| **プロパティマッピング** | ✅ | ❌ | ❌ |
+| **独立性** | 完全独立 | 完全独立 | 完全独立 |
+
+### 処理フロー全体像
+
+```
+1. フロントマター抽出 (YAML parsing)
+   ↓
+2. yaml-schema-mapper による変換 ← ★ Schema準拠データへ変換
+   - Property mapping (file → input_file)
+   - Type coercion ([false] → false)
+   - Schema validation
+   ↓
+3. フェーズ1処理 (x-flatten-arrays, x-jmespath-filter)
+   ↓
+4. フェーズ2処理 (全体統合)
+   - x-derived-from (data-path-resolver 使用)
+   - x-derived-unique
+   ↓
+5. フェーズ3処理 (テンプレート展開)
+   - x-template-items (json-template 使用)
+   - {@items} 展開 (親システム)
+```
+
 ## フロントマター処理機能
 
 フロントマターの多様な構造に対応し、テンプレート処理用のデータを準備する機能を提供する。
@@ -394,6 +497,16 @@ Schemaで使用可能な`x-*`ディレクティブの完全なリファレンス
 
 **重要**: このモジュールは **`x-derived-from`ディレクティブ専用**
 です。テンプレート変数（`{variable.path}`）の解決には使用しません（json-templateを使用）。
+また、フロントマターのSchema変換には **yaml-schema-mapper** を使用します。
+
+**3つのサブモジュールの使い分け**:
+
+1. **yaml-schema-mapper**: フロントマターの生データ → Schema準拠データへの変換
+   - プロパティ名マッピング、型変換、検証
+2. **data-path-resolver**: `x-derived-from` でのパス式解決
+   - 配列展開構文 (`items[]`) による値の集約
+3. **json-template**: テンプレート変数 `{variable.path}` の置換
+   - 階層データアクセス、配列インデックス指定
 
 `x-derived-from`ディレクティブで指定されたパス式の解決には、`sub_modules/data-path-resolver`モジュールを使用する。
 

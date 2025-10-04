@@ -4,6 +4,78 @@
 上記がSchemaドメイン境界線である。
 この成果は3つそれぞれが独立している。あとで統合される。
 
+## サブモジュールの役割分担
+
+処理は以下の3つの独立したサブモジュールを使用して実現される：
+
+### 1. yaml-schema-mapper: フロントマター変換
+
+**適用タイミング**: 「1.フロントマター解析の構造」処理の直後
+
+フロントマターから抽出された生データ（YAML parsed）をSchema定義に基づいて変換する。
+
+**処理内容**:
+- プロパティ名のマッピング（`file` → `input_file`、snake_case → camelCase など）
+- 型変換（`[false]` → `false`、`"42"` → `42` など）
+- Schema検証（required, enum, pattern など）
+
+**入力**: 生フロントマターデータ `Record<string, unknown>`
+**出力**: Schema準拠データ `Record<string, unknown>`
+
+**重要**: この変換により、以降の処理ではSchema定義に沿ったデータ構造が保証される。
+
+### 2. data-path-resolver: パス式解決
+
+**適用タイミング**: 「3.解析結果データの処理指示」内の `x-derived-from` 処理
+
+Schema内の `x-derived-from` ディレクティブで指定されたパス式を解析し、値を抽出する。
+
+**処理内容**:
+- ドット記法 (`id.full`)
+- 配列展開構文 (`items[]`)
+- プロパティ付き展開 (`items[].name`)
+- 二重展開 (`articles[].tags[]`)
+
+**入力**: パス式 (例: `"commands[].c1"`)
+**出力**: 抽出された値（配列または単一値）
+
+**使用例**:
+```json
+{
+  "availableConfigs": {
+    "x-derived-from": "commands[].c1"
+  }
+}
+```
+
+### 3. json-template: テンプレート変数置換
+
+**適用タイミング**: テンプレート処理フェーズ（`x-template-items` 処理）
+
+テンプレートファイル内の `{variable.path}` 形式の変数を実際の値で置換する。
+
+**処理内容**:
+- 変数解析と置換
+- ドット記法によるデータアクセス
+- 配列インデックス指定 (`{items[0].name}`)
+
+**入力**: テンプレートファイルパス + データ
+**出力**: 変数置換済みテンプレート
+
+**重要**: `{@items}` 記法は親システム（フロントマター処理）が担当し、このモジュールは個別変数の置換のみを行う。
+
+### モジュール間の独立性
+
+各サブモジュールは完全に独立しており、相互依存関係は存在しない：
+
+- **yaml-schema-mapper**: JSON Schema仕様に基づく汎用変換モジュール
+- **data-path-resolver**: パス式解析の汎用ライブラリ
+- **json-template**: テンプレート処理の汎用ライブラリ
+
+すべてのモジュールは親プロジェクトから独立して動作可能である。
+
+---
+
 「1.フロントマター解析の構造」結果は、データ構造として把握される。どのようなデータがフロントマターから抽出できたのかを知っているのは、この「1.フロントマター解析の構造」処理だけである。
 引数のMDファイル指定を使うのは、この境界内だけである。
 
@@ -87,6 +159,79 @@ x-templateはSchemaのrootが起点となる。
 ```
 
 テンプレート変数の処理を最後まで置換し終えたら、全体のテキストデータをJSONとして構造化したデータに保持する。その後、出力形式をx-template-formatの指定で変換をかけて出力する。
+
+## フロントマター変換における sub_modules/yaml-schema-mapper の役割
+
+フロントマター抽出直後、Schema処理の前に、`sub_modules/yaml-schema-mapper`モジュールを使用してデータ変換を行う。
+
+### yaml-schema-mapperモジュールの機能と制約
+
+**提供機能:**
+
+- プロパティ名マッピング（exact match → case-insensitive → heuristic）
+- `x-map-from` ディレクティブサポート（string | string[] fallback）
+- 型変換（array ↔ single value, string → number/boolean など）
+- Schema検証（required, enum, pattern, min/max など）
+- Union type サポート
+- 詳細な警告システム（13種類のwarning codes）
+
+**処理タイミング:**
+
+フロントマター抽出（YAML parsing）の直後、x-* ディレクティブ処理の前に実行される。
+
+### フロントマターシステムとの統合方針
+
+`FrontmatterData.create()` 内で以下の責任分離を行う:
+
+1. **YAML解析**: `@std/front-matter` でフロントマター部分を抽出
+2. **Schema変換**: `yaml-schema-mapper` で生データをSchema準拠データへ変換
+3. **ディレクティブ処理**: x-flatten-arrays, x-derived-from などの処理
+
+### 具体的な処理フロー
+
+```
+Raw YAML frontmatter
+↓
+@std/front-matter による抽出
+↓ (Record<string, unknown>)
+yaml-schema-mapper による変換 ← ★ 新規統合
+  - file → input_file (property mapping)
+  - [false] → false (type coercion)
+  - Schema validation
+↓ (Schema-compliant Record<string, unknown>)
+FrontmatterData インスタンス生成
+↓
+x-* ディレクティブ処理
+```
+
+### 変換例
+
+```typescript
+// Input (extracted YAML)
+{
+  file: [false],
+  stdin: [true],
+  count: "42"
+}
+
+// Schema
+{
+  properties: {
+    input_file: { type: "boolean", "x-map-from": "file" },
+    stdin: { type: "boolean" },
+    count: { type: "number" }
+  }
+}
+
+// Output (after yaml-schema-mapper)
+{
+  input_file: false,
+  stdin: true,
+  count: 42
+}
+```
+
+この設計により、フロントマターの多様な記法を吸収し、後続処理では一貫したSchema準拠データを扱うことができる。
 
 ## テンプレート処理における sub_modules/json-template の役割
 
