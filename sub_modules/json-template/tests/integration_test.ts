@@ -4,10 +4,8 @@
 
 import {
   assertEquals,
-  assertRejects,
 } from "https://deno.land/std@0.208.0/assert/mod.ts";
 import { createTemplateProcessor } from "../src/mod.ts";
-import { VariableNotFoundError } from "../src/mod.ts";
 
 // Helper to create temporary test files
 async function createTempFile(
@@ -203,10 +201,10 @@ Deno.test("Integration - Real-world registry template", async () => {
   }
 });
 
-Deno.test("Integration - Error handling with detailed context", async () => {
+Deno.test("Integration - Optional variable handling with warning", async () => {
   const template = `{
     "valid": "{existing.value}",
-    "invalid": "{missing.deeply.nested.value}"
+    "optional": "{missing.deeply.nested.value}"
   }`;
 
   const data = {
@@ -218,14 +216,13 @@ Deno.test("Integration - Error handling with detailed context", async () => {
   try {
     const processor = createTemplateProcessor();
 
-    const error = await assertRejects(
-      () => processor.process(data, tempFile),
-      VariableNotFoundError,
-    );
+    // Should now succeed with warning logged and empty string for missing variable
+    const result = await processor.process(data, tempFile);
 
-    assertEquals(error.code, "VARIABLE_NOT_FOUND");
-    assertEquals(error.variablePath, "missing.deeply.nested.value");
-    assertEquals(error.templatePath, tempFile);
+    assertEquals(result, {
+      valid: "test",
+      optional: "", // Missing variable replaced with empty string
+    });
   } finally {
     await cleanup(tempFile);
   }

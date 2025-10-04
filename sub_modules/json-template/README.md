@@ -209,6 +209,63 @@ try {
 }
 ```
 
+## Optional Variables
+
+The processor supports **optional variables** - variables that may not exist in the data:
+
+### Behavior
+
+When a variable is not found:
+1. **Warning is logged** to stderr
+2. **Processing continues** (no exception thrown)
+3. **Empty string or null** is substituted
+
+### Substitution Rules
+
+**String context** (variable in quotes):
+```json
+// Template
+{ "value": "{missing.variable}" }
+
+// Result (if missing.variable doesn't exist)
+{ "value": "" }
+```
+
+**Value context** (variable without quotes):
+```json
+// Template
+{ "count": "{missing.count}" }
+
+// Result (if missing.count doesn't exist)
+{ "count": null }
+```
+
+### Example
+
+```typescript
+const data = {
+  name: "App",
+  // version is missing
+};
+
+// Template with optional variable
+const template = {
+  "appName": "{name}",
+  "appVersion": "{version}"  // This doesn't exist
+};
+
+// Result
+// stderr: [json-template WARNING] Variable not found: version
+// return: { "appName": "App", "appVersion": "" }
+```
+
+### Benefits
+
+- **Partial data support**: Works even when not all properties are available
+- **Flexible development**: Template and data don't need perfect sync
+- **Better debugging**: See warnings while still getting results
+- **Backward compatible**: Existing complete data works as before
+
 ## Limitations
 
 - **No Array Expansion**: `{@items}` syntax is not supported

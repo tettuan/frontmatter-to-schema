@@ -10,7 +10,6 @@ import { JsonTemplateProcessorImpl } from "../src/template-processor.ts";
 import {
   InvalidJsonError,
   TemplateNotFoundError,
-  VariableNotFoundError,
 } from "../src/errors.ts";
 
 // Helper to create temporary test files
@@ -187,8 +186,8 @@ Deno.test("JsonTemplateProcessorImpl - throws TemplateNotFoundError for missing 
   );
 });
 
-Deno.test("JsonTemplateProcessorImpl - throws VariableNotFoundError for missing variables", async () => {
-  const template = '{"value": "{missing.variable}"}';
+Deno.test("JsonTemplateProcessorImpl - handles missing variables with empty string", async () => {
+  const template = '{"value": "{missing.variable}", "existing": "{existing}"}';
   const data = { existing: "value" };
 
   const tempFile = await createTempFile(template);
@@ -196,10 +195,13 @@ Deno.test("JsonTemplateProcessorImpl - throws VariableNotFoundError for missing 
   try {
     const processor = new JsonTemplateProcessorImpl();
 
-    await assertRejects(
-      () => processor.process(data, tempFile),
-      VariableNotFoundError,
-    );
+    // Should NOT throw, instead returns empty string for missing variable
+    const result = await processor.process(data, tempFile);
+
+    assertEquals(result, {
+      value: "", // Missing variable replaced with empty string
+      existing: "value",
+    });
   } finally {
     await cleanup(tempFile);
   }
@@ -295,6 +297,95 @@ Deno.test("JsonTemplateProcessorImpl - handles empty template", async () => {
     const result = await processor.process(data, tempFile);
 
     assertEquals(result, {});
+  } finally {
+    await cleanup(tempFile);
+  }
+});
+
+Deno.test("JsonTemplateProcessorImpl - property name mismatch handling with optional variables", async () => {
+  // Demonstrates issue #1293/#1294/#1295 - template now handles missing properties gracefully
+  const template = `{
+    "options": "{options}",
+    "options_each": {
+      "input": "{options.input}",
+      "input_file": "{options.input_file}"
+    }
+  }`;
+
+  // Data with "file" property instead of "input_file"
+  const dataWithFile = {
+    options: {
+      input: ["value"],
+      file: true,  // Property name is "file", not "input_file"
+    },
+  };
+
+  // Data with correct "input_file" property
+  const dataWithInputFile = {
+    options: {
+      input: ["value"],
+      input_file: true,  // Correct property name
+    },
+  };
+
+  const tempFile = await createTempFile(template);
+
+  try {
+    const processor = new JsonTemplateProcessorImpl();
+
+    // Should now succeed with empty string for missing property
+    const resultWithMissing = await processor.process(dataWithFile, tempFile);
+    assertEquals(resultWithMissing, {
+      options: {
+        input: ["value"],
+        file: true,
+      },
+      options_each: {
+        input: ["value"],
+        input_file: "", // Missing property replaced with empty string
+      },
+    });
+
+    // Should succeed with correct property name
+    const result = await processor.process(dataWithInputFile, tempFile);
+    assertEquals(result, {
+      options: {
+        input: ["value"],
+        input_file: true,
+      },
+      options_each: {
+        input: ["value"],
+        input_file: true,
+      },
+    });
+  } finally {
+    await cleanup(tempFile);
+  }
+});
+
+Deno.test("JsonTemplateProcessorImpl - missing optional property now succeeds with empty string", async () => {
+  // json-template now supports optional variables
+  const template = `{
+    "required": "{required}",
+    "optional": "{optional}"
+  }`;
+
+  const dataWithoutOptional = {
+    required: "value",
+    // optional is missing
+  };
+
+  const tempFile = await createTempFile(template);
+
+  try {
+    const processor = new JsonTemplateProcessorImpl();
+
+    // Should now succeed with empty string for missing "optional" property
+    const result = await processor.process(dataWithoutOptional, tempFile);
+    assertEquals(result, {
+      required: "value",
+      optional: "", // Missing property replaced with empty string
+    });
   } finally {
     await cleanup(tempFile);
   }

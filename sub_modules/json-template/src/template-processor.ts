@@ -69,7 +69,16 @@ export class JsonTemplateProcessorImpl implements JsonTemplateProcessor {
         return this.formatValue(value);
       } catch (error) {
         if (error instanceof VariableNotFoundError) {
-          throw new VariableNotFoundError(trimmedPath, templatePath);
+          // Log warning to stderr but continue processing
+          console.error(
+            `[json-template WARNING] Variable not found: ${trimmedPath}`,
+          );
+          if (templatePath) {
+            console.error(`  Template: ${templatePath}`);
+          }
+
+          // Return empty string (will be quoted as "")
+          return '""';
         }
         throw error;
       }

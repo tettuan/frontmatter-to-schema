@@ -1,0 +1,10 @@
+{
+  "output": {
+    "title": "${title}",
+    "author": "${author}",
+    "metadata": {
+      "tags": "${tags}",
+      "published": "${published}"
+    }
+  }
+}
