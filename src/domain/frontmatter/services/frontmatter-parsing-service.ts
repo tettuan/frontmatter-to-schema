@@ -7,7 +7,7 @@ import { FileSystemPort } from "../../../infrastructure/ports/file-system-port.t
 import { createFileError } from "../../shared/types/file-errors.ts";
 import { extract as extractYaml } from "jsr:@std/front-matter@1.0.5/yaml";
 import { SchemaData } from "../../schema/entities/schema.ts";
-import { mapDataToSchema } from "@yaml-schema-mapper/mod.ts";
+import { mapDataToSchema } from "../../../../sub_modules/yaml-schema-mapper/src/mod.ts";
 
 /**
  * Domain service for parsing frontmatter from markdown documents.

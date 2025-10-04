@@ -3,7 +3,7 @@
   "description": "Design level traceability IDs",
   "req": [
     {
-      "id": "design:ui:dashboard-layout-1a2b3c#20250909",
+      "id_full": "design:ui:dashboard-layout-1a2b3c#20250909",
       "derived_from": [],
       "trace_to": []
     }
