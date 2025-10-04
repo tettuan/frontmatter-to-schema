@@ -231,9 +231,22 @@ export class ItemsExpander {
         );
         processedItems.push(resolvedContent);
       } catch (error) {
-        return Result.error(
-          this.convertJsonTemplateError(error, templatePath),
+        // Log warning but continue processing other items
+        const convertedError = this.convertJsonTemplateError(
+          error,
+          templatePath,
         );
+        console.error(
+          `⚠️  Warning: Failed to process item ${i} with template ${templatePath}: ${
+            convertedError.kind === "VariableResolutionError"
+              ? `Variable '${convertedError.variable}' not found`
+              : convertedError.kind === "TemplateProcessingError"
+              ? convertedError.error
+              : "Unknown error"
+          }`,
+        );
+        // Skip this item and continue with others
+        continue;
       }
     }
 
