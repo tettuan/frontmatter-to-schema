@@ -2,8 +2,58 @@
 
 # Frontmatter-to-schema installation script
 # Installs the CLI tool directly from GitHub to ~/.deno/bin/
+#
+# Usage:
+#   ./frontmatter-install.sh              # Install latest from main branch
+#   ./frontmatter-install.sh v1.3.1       # Install specific version tag
+#   ./frontmatter-install.sh --version v1.3.1  # Install specific version tag
+#   FRONTMATTER_TO_SCHEMA_VERSION=v1.3.1 ./frontmatter-install.sh  # Use env var
 
 set -e
+
+# Parse command-line arguments
+VERSION=""
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        --help|-h)
+            echo "Usage: $0 [OPTIONS] [VERSION]"
+            echo ""
+            echo "Install frontmatter-to-schema CLI tool from GitHub"
+            echo ""
+            echo "OPTIONS:"
+            echo "  --version, -v <version>  Install specific version tag (e.g., v1.3.1)"
+            echo "  --help, -h              Show this help message"
+            echo ""
+            echo "EXAMPLES:"
+            echo "  $0                      # Install latest from main branch"
+            echo "  $0 v1.3.1              # Install version v1.3.1"
+            echo "  $0 --version v1.3.1    # Install version v1.3.1"
+            echo ""
+            echo "ENVIRONMENT VARIABLES:"
+            echo "  FRONTMATTER_TO_SCHEMA_VERSION        Version/tag to install"
+            echo "  FRONTMATTER_TO_SCHEMA_BRANCH         Branch to install (default: main)"
+            echo "  FRONTMATTER_TO_SCHEMA_INSTALL_ROOT   Install location (default: ~/.deno)"
+            echo "  FRONTMATTER_TO_SCHEMA_BINARY_NAME    Binary name (default: frontmatter-to-schema)"
+            echo "  FRONTMATTER_TO_SCHEMA_GITHUB_TOKEN   GitHub token for private repos"
+            echo "  FRONTMATTER_TO_SCHEMA_PERMISSIONS    Custom Deno permissions"
+            exit 0
+            ;;
+        --version|-v)
+            VERSION="$2"
+            shift 2
+            ;;
+        v*.*.*)
+            VERSION="$1"
+            shift
+            ;;
+        *)
+            echo "❌ Unknown argument: $1"
+            echo "Usage: $0 [--version|-v <version>] or $0 <version>"
+            echo "Run '$0 --help' for more information"
+            exit 1
+            ;;
+    esac
+done
 
 echo "📦 Installing frontmatter-to-schema from GitHub..."
 echo ""
@@ -28,7 +78,15 @@ if [ -f .env ]; then
 fi
 
 # Use repository-name-based environment variables
+# Priority: CLI arg > Env var > Default
+VERSION="${VERSION:-${FRONTMATTER_TO_SCHEMA_VERSION:-}}"
 BRANCH="${FRONTMATTER_TO_SCHEMA_BRANCH:-main}"
+
+# If version is specified, use it as branch/tag
+if [ -n "$VERSION" ]; then
+    BRANCH="$VERSION"
+    echo "📌 Installing version: $VERSION"
+fi
 INSTALL_ROOT="${FRONTMATTER_TO_SCHEMA_INSTALL_ROOT:-$HOME/.deno}"
 BIN_DIR="${INSTALL_ROOT}/bin"
 BINARY_NAME="${FRONTMATTER_TO_SCHEMA_BINARY_NAME:-frontmatter-to-schema}"
@@ -113,10 +171,11 @@ else
 fi
 
 # Show configuration if custom values were used
-if [ "$BRANCH" != "main" ] || [ "$INSTALL_ROOT" != "$HOME/.deno" ] || [ -n "$FRONTMATTER_TO_SCHEMA_PERMISSIONS" ] || [ "$BINARY_NAME" != "frontmatter-to-schema" ] || [ -n "$GITHUB_TOKEN" ]; then
+if [ -n "$VERSION" ] || [ "$BRANCH" != "main" ] || [ "$INSTALL_ROOT" != "$HOME/.deno" ] || [ -n "$FRONTMATTER_TO_SCHEMA_PERMISSIONS" ] || [ "$BINARY_NAME" != "frontmatter-to-schema" ] || [ -n "$GITHUB_TOKEN" ]; then
     echo ""
     echo "🔧 Configuration used:"
-    [ "$BRANCH" != "main" ] && echo "  Branch: $BRANCH"
+    [ -n "$VERSION" ] && echo "  Version: $VERSION"
+    [ -z "$VERSION" ] && [ "$BRANCH" != "main" ] && echo "  Branch: $BRANCH"
     [ "$INSTALL_ROOT" != "$HOME/.deno" ] && echo "  Install root: $INSTALL_ROOT"
     [ -n "$FRONTMATTER_TO_SCHEMA_PERMISSIONS" ] && echo "  Permissions: $FRONTMATTER_TO_SCHEMA_PERMISSIONS"
     [ "$BINARY_NAME" != "frontmatter-to-schema" ] && echo "  Binary name: $BINARY_NAME"
