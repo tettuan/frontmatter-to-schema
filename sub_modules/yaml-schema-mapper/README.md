@@ -253,6 +253,125 @@ interface MapperOptions {
 **See [Type Coercion Policy](./docs/type-coercion-policy.md) for detailed
 configuration examples and conversion rules.**
 
+### Configuration Examples
+
+#### Example 1: Default Behavior (Safe + Preserve)
+
+```typescript
+const result = mapDataToSchema({
+  schema: {
+    properties: {
+      enabled: { type: "boolean" },
+      count: { type: "integer" }
+    }
+  },
+  data: {
+    enabled: [true],      // Safe: [true] → true
+    count: [1, 2, 3]      // Ambiguous: preserved with warning
+  }
+  // No options needed - uses safe defaults
+});
+
+// Result:
+// { enabled: true, count: [1, 2, 3] }
+// Warnings: TYPE_COERCION for enabled, AMBIGUOUS_CONVERSION for count
+```
+
+#### Example 2: Strict Mode (Error on Ambiguous)
+
+```typescript
+const result = mapDataToSchema({
+  schema: {
+    properties: {
+      value: { type: "boolean" }
+    }
+  },
+  data: {
+    value: [true, false]
+  },
+  options: {
+    invalidConversionAction: "error"  // Reject ambiguous conversions
+  }
+});
+
+// Result: error severity warning
+```
+
+#### Example 3: Semantic Conversions (Data Migration)
+
+```typescript
+const result = mapDataToSchema({
+  schema: {
+    properties: {
+      name: { type: "string" },
+      active: { type: "boolean" },
+      score: { type: "integer" }
+    }
+  },
+  data: {
+    name: null,
+    active: 1,
+    score: true
+  },
+  options: {
+    allowSemanticConversions: true,
+    semanticConversionRules: [
+      "null-to-empty-string",
+      "number-to-boolean",
+      "boolean-to-number"
+    ]
+  }
+});
+
+// Result:
+// { name: "", active: true, score: 1 }
+```
+
+#### Example 4: Fallback Mode (Use Default Values)
+
+```typescript
+const result = mapDataToSchema({
+  schema: {
+    properties: {
+      value: { type: "boolean" },
+      count: { type: "integer" }
+    }
+  },
+  data: {
+    value: [true, false],
+    count: 3.14
+  },
+  options: {
+    invalidConversionAction: "fallback"  // Use type defaults
+  }
+});
+
+// Result:
+// { value: false, count: 3 }  // boolean default, truncated integer
+```
+
+#### Example 5: Silent Mode (Suppress Warnings)
+
+```typescript
+const result = mapDataToSchema({
+  schema: {
+    properties: {
+      value: { type: "boolean" }
+    }
+  },
+  data: {
+    value: [true]
+  },
+  options: {
+    warnOnCoercion: false,
+    logLevel: "silent"
+  }
+});
+
+// Result: { value: true }
+// No warnings
+```
+
 ## Warning System
 
 The mapper provides detailed warnings for non-fatal issues:
