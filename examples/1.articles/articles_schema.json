@@ -15,6 +15,7 @@
     "articles": {
       "type": "array",
       "description": "List of all articles",
+      "x-frontmatter-part": true,
       "items": {
         "$ref": "article_schema.json"
       }

@@ -107,17 +107,23 @@ export class SchemaLoadingStage implements PipelineStage<string, Schema> {
       );
     }
 
-    // Parse JSON
+    // Parse JSON and resolve $ref references
     let schemaData: any;
     try {
-      schemaData = JSON.parse(contentResult.unwrap());
+      // Use @apidevtools/json-schema-ref-parser to resolve $ref
+      const $RefParser = (await import("npm:@apidevtools/json-schema-ref-parser@11")).default;
+      schemaData = await $RefParser.dereference(schemaPath);
     } catch (error) {
+      // Distinguish between file access errors and schema parse errors
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      const isFileAccessError = errorMessage.includes("ENOENT") ||
+                                errorMessage.includes("no such file") ||
+                                errorMessage.includes("cannot find");
+
       return Result.error(
         new ProcessingError(
-          `Invalid JSON in schema file: ${
-            error instanceof Error ? error.message : String(error)
-          }`,
-          "SCHEMA_PARSE_ERROR",
+          `Failed to ${isFileAccessError ? "access" : "parse or dereference"} schema: ${errorMessage}`,
+          isFileAccessError ? "INPUT_ACCESS_ERROR" : "SCHEMA_PARSE_ERROR",
           { schemaPath, error },
         ),
       );
