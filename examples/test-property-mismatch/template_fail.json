@@ -1,0 +1,16 @@
+{
+  "c1": "{c1}",
+  "c2": "{c2}",
+  "c3": "{c3}",
+  "title": "{title}",
+  "description": "{description}",
+  "usage": "{usage}",
+  "options": "{options}",
+  "options_each": {
+    "input": "{options.input}",
+    "adaptation": "{options.adaptation}",
+    "input_file": "{options.input_file}",
+    "destination": "{options.destination}",
+    "stdin": "{options.stdin}"
+  }
+}
