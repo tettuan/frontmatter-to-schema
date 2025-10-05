@@ -29,6 +29,12 @@ const DEFAULT_OPTIONS = {
   maxDepth: 20,
   warnOnDataLoss: true,
   unicodeNormalization: "none" as const,
+  allowSafeConversions: true,
+  allowSemanticConversions: false,
+  semanticConversionRules: [] as string[],
+  invalidConversionAction: "preserve" as const,
+  warnOnCoercion: true,
+  logLevel: "warn" as const,
 };
 
 /**
@@ -167,6 +173,11 @@ function mapObject(
         {
           coerceTypes: options.coerceTypes,
           warnOnDataLoss: options.warnOnDataLoss,
+          allowSafeConversions: options.allowSafeConversions,
+          allowSemanticConversions: options.allowSemanticConversions,
+          semanticConversionRules: options.semanticConversionRules,
+          invalidConversionAction: options.invalidConversionAction,
+          warnOnCoercion: options.warnOnCoercion,
         },
       );
 
@@ -243,20 +254,40 @@ function mapObject(
         );
       }
 
-      // Validate value
+      // Validate value (but don't skip preserved values)
       if (options.validateTypes) {
         try {
           validateValue(transformedValue, schemaProperty, currentPath);
         } catch (error) {
           if (error instanceof MapperError) {
-            warnings.push({
-              code: WarningCode.PROPERTY_NOT_IN_SCHEMA,
-              message: error.message,
-              path: error.path || currentPath,
-              severity: "error",
-              details: error.details,
-            });
-            continue; // Skip invalid value
+            // Check if this value was preserved (not coerced)
+            const wasPreserved = transformResult.warnings.some((w) =>
+              w.code === WarningCode.AMBIGUOUS_CONVERSION ||
+              w.code === WarningCode.INVALID_CONVERSION ||
+              w.code === WarningCode.VALUE_PRESERVED
+            );
+
+            if (wasPreserved) {
+              // Keep preserved values even if they don't validate
+              // (preservation strategy takes precedence)
+              warnings.push({
+                code: WarningCode.PROPERTY_NOT_IN_SCHEMA,
+                message: error.message,
+                path: error.path || currentPath,
+                severity: "warning", // Warning, not error
+                details: error.details,
+              });
+            } else {
+              // Non-preserved invalid values are skipped
+              warnings.push({
+                code: WarningCode.PROPERTY_NOT_IN_SCHEMA,
+                message: error.message,
+                path: error.path || currentPath,
+                severity: "error",
+                details: error.details,
+              });
+              continue; // Skip invalid value
+            }
           } else {
             throw error;
           }

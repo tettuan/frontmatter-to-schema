@@ -56,6 +56,9 @@ export enum WarningCode {
   DATA_LOSS = "DATA_LOSS",
   PRECISION_LOSS = "PRECISION_LOSS",
   NAN_CONVERSION = "NAN_CONVERSION",
+  AMBIGUOUS_CONVERSION = "AMBIGUOUS_CONVERSION",
+  INVALID_CONVERSION = "INVALID_CONVERSION",
+  VALUE_PRESERVED = "VALUE_PRESERVED",
 
   // Structure
   DEPTH_LIMIT = "DEPTH_LIMIT",
@@ -72,6 +75,7 @@ export interface WarningDetails {
   originalValue?: unknown;
   transformedValue?: unknown;
   suggestion?: string;
+  reason?: string;
   candidates?: string[];
   currentDepth?: number;
   maxDepth?: number;
@@ -127,6 +131,46 @@ export interface MapperOptions {
    * Default: "none"
    */
   unicodeNormalization?: "NFC" | "NFD" | "none";
+
+  /**
+   * Allow safe type conversions (Layer 1: Safe Conversions)
+   * Default: true
+   */
+  allowSafeConversions?: boolean;
+
+  /**
+   * Allow semantic type conversions (Layer 2: Semantic Conversions)
+   * Default: false
+   */
+  allowSemanticConversions?: boolean;
+
+  /**
+   * Whitelist of semantic conversion rules to enable
+   * Only used when allowSemanticConversions is true
+   * Default: []
+   */
+  semanticConversionRules?: string[];
+
+  /**
+   * Action to take when conversion is invalid or ambiguous (Layer 3: Preservation)
+   * - 'preserve': Keep original value with warning (default)
+   * - 'error': Throw error
+   * - 'fallback': Use type-specific default value
+   * Default: 'preserve'
+   */
+  invalidConversionAction?: "preserve" | "error" | "fallback";
+
+  /**
+   * Warn on type coercions
+   * Default: true
+   */
+  warnOnCoercion?: boolean;
+
+  /**
+   * Log level for coercion warnings
+   * Default: 'warn'
+   */
+  logLevel?: "debug" | "warn" | "error" | "silent";
 }
 
 /**
