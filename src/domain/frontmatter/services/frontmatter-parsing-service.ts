@@ -185,7 +185,7 @@ export class FrontmatterParsingService {
             coerceTypes: true,
             validateTypes: true,
             strict: false,
-            invalidConversionAction: "preserve", // Preserve original values for ambiguous conversions
+            allowSafeConversions: true, // Enable safe conversions like [false] -> false
           },
         });
 

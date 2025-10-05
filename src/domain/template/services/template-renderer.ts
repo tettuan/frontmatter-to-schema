@@ -120,34 +120,32 @@ export class TemplateRenderer {
     containerTemplate: Template,
     data: FrontmatterData[],
     itemsTemplate?: Template | null,
-    frontmatterPartProperty?: string | null,
+    nestedArrayProperty?: string | null,
   ): Promise<Result<string, TemplateError>> {
     try {
       // Convert data array to plain objects
       const plainObjects = data.map((item) => item.getData());
 
-      // Extract array data for items processing
-      // If frontmatterPartProperty is specified (e.g., "traceability"), check if
-      // frontmatter actually has that nested array property. If so, extract it.
-      // This is used with x-frontmatter-part + x-flatten-arrays directives.
-      // Example: frontmatter.traceability = [{id: {...}}, {id: {...}}]
-      //   -> Extract traceability array elements for {@items} expansion
+      // Determine array data based on nested array property:
+      // - If nestedArrayProperty is specified (from x-flatten-arrays directive):
+      //   Extract that nested array from frontmatter (e.g., frontmatter.traceability)
+      // - Otherwise (standard x-frontmatter-part):
+      //   Use entire frontmatter as array element
       let arrayData: unknown[];
-      if (frontmatterPartProperty) {
-        // Try to extract arrays from the specified frontmatter property
+      if (nestedArrayProperty) {
+        // Nested array exists: extract it from each frontmatter
+        // Example: frontmatter.traceability = [{...}, {...}]
         const extracted = plainObjects.flatMap((obj) => {
-          const value = obj[frontmatterPartProperty];
+          const value = obj[nestedArrayProperty];
           if (Array.isArray(value)) {
             return value;
           }
           return [];
         });
-
-        // Use extracted data (even if empty array)
-        // Empty array is valid result from x-jmespath-filter
         arrayData = extracted;
       } else {
-        // No frontmatterPartProperty: use entire frontmatter objects for {@items}
+        // No nested array: use entire frontmatter as array element (standard)
+        // Example: frontmatter = {title: "...", type: "..."} → one array element
         arrayData = plainObjects;
       }
 

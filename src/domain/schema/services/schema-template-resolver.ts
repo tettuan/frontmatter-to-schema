@@ -40,7 +40,7 @@ export class SchemaTemplateResolver {
 
       const itemsTemplate = this.extractItemsTemplate(schemaData);
 
-      const frontmatterPartProperty = this.extractFrontmatterPartProperty(
+      const nestedArrayProperty = this.extractNestedArrayProperty(
         schemaData,
       );
 
@@ -48,7 +48,7 @@ export class SchemaTemplateResolver {
         sourceSchema: schema,
         resolvedExtensions: this.extractExtensions(schemaData),
         templateResolutionStrategy: this.getResolutionStrategy(schema),
-        frontmatterPartProperty,
+        nestedArrayProperty,
       };
 
       // x-template-items is optional - without it, {@items} won't be expanded
@@ -120,10 +120,11 @@ export class SchemaTemplateResolver {
   }
 
   /**
-   * Extracts the property name that has x-frontmatter-part: true
-   * Returns null if not found
+   * Extracts the nested array property name from x-flatten-arrays directive.
+   * Returns the property name if x-frontmatter-part has x-flatten-arrays,
+   * otherwise returns null (meaning: use entire frontmatter as array element).
    */
-  private extractFrontmatterPartProperty(
+  private extractNestedArrayProperty(
     schemaData: Record<string, unknown>,
   ): string | null {
     const properties = schemaData.properties;
@@ -131,11 +132,17 @@ export class SchemaTemplateResolver {
       return null;
     }
 
-    for (const [propName, propSchema] of Object.entries(properties)) {
+    for (const [_propName, propSchema] of Object.entries(properties)) {
       if (typeof propSchema === "object" && propSchema !== null) {
         const schema = propSchema as Record<string, unknown>;
         if (schema[DIRECTIVE_NAMES.FRONTMATTER_PART] === true) {
-          return propName;
+          // If x-flatten-arrays is present, return its value (nested array property name)
+          // Otherwise, return null (use entire frontmatter as array element)
+          const flattenArrays = schema[DIRECTIVE_NAMES.FLATTEN_ARRAYS];
+          if (flattenArrays && typeof flattenArrays === "string") {
+            return flattenArrays;
+          }
+          return null;
         }
       }
     }
