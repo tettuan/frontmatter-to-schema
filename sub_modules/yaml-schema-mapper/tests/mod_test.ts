@@ -104,20 +104,22 @@ Deno.test("mapDataToSchema - string to number coercion", () => {
   assertEquals(mapped.data.count, 42);
 });
 
-Deno.test("mapDataToSchema - extended boolean parsing", () => {
+Deno.test("mapDataToSchema - extended boolean parsing (with semantic conversions)", () => {
   const result = mapDataToSchema({
     schema: {
       type: "object",
       properties: {
         active: { type: "boolean" },
         disabled: { type: "boolean" },
-        verbose: { type: "boolean" },
       },
     },
     data: {
-      active: "yes",
+      active: 1,
       disabled: 0,
-      verbose: "on",
+    },
+    options: {
+      allowSemanticConversions: true,
+      semanticConversionRules: ["number-to-boolean"],
     },
   });
 
@@ -125,7 +127,6 @@ Deno.test("mapDataToSchema - extended boolean parsing", () => {
   const mapped = result.unwrap();
   assertEquals(mapped.data.active, true);
   assertEquals(mapped.data.disabled, false);
-  assertEquals(mapped.data.verbose, true);
 });
 
 Deno.test("mapDataToSchema - single value to array", () => {

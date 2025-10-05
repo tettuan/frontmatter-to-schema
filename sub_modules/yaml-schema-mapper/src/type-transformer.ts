@@ -4,8 +4,8 @@
  * Transforms values to match schema types with coercion and validation.
  */
 
-import type { SchemaProperty } from "./types.ts";
-import { MappingWarning, WarningCode } from "./types.ts";
+import type { MappingWarning, SchemaProperty } from "./types.ts";
+import { WarningCode } from "./types.ts";
 import { TypeTransformationError } from "./errors.ts";
 
 /**
@@ -26,18 +26,39 @@ export function transformValue(
   options?: {
     coerceTypes?: boolean;
     warnOnDataLoss?: boolean;
+    allowSafeConversions?: boolean;
+    allowSemanticConversions?: boolean;
+    semanticConversionRules?: string[];
+    invalidConversionAction?: "preserve" | "error" | "fallback";
+    warnOnCoercion?: boolean;
   },
 ): TransformResult {
   const warnings: MappingWarning[] = [];
   const coerce = options?.coerceTypes ?? true;
   const warnDataLoss = options?.warnOnDataLoss ?? true;
-
-  // Handle null/undefined
-  if (value === null || value === undefined) {
-    return { value, warnings };
-  }
+  const allowSafeConversions = options?.allowSafeConversions ?? true;
+  const allowSemanticConversions = options?.allowSemanticConversions ?? false;
+  const semanticConversionRules = options?.semanticConversionRules ?? [];
+  const invalidConversionAction = options?.invalidConversionAction ??
+    "preserve";
+  const warnOnCoercion = options?.warnOnCoercion ?? true;
 
   const schemaType = schemaProperty.type;
+
+  // Handle null/undefined - but allow string/array types to handle it for semantic conversions
+  if (value === null || value === undefined) {
+    // For string and array types, let the type transformer handle null (semantic conversions)
+    if (
+      schemaType === "string" || schemaType === "array" ||
+      (Array.isArray(schemaType) &&
+        (schemaType.includes("string") || schemaType.includes("array")))
+    ) {
+      // Continue to type transformation
+    } else {
+      // For other types, return null/undefined as-is
+      return { value, warnings };
+    }
+  }
 
   // No type specified - return as is
   if (!schemaType) {
@@ -51,6 +72,11 @@ export function transformValue(
         const result = transformToType(value, type, schemaProperty, path, {
           coerce,
           warnDataLoss,
+          allowSafeConversions,
+          allowSemanticConversions,
+          semanticConversionRules,
+          invalidConversionAction,
+          warnOnCoercion,
         });
         warnings.push(...result.warnings);
         return { value: result.value, warnings };
@@ -71,6 +97,11 @@ export function transformValue(
   const result = transformToType(value, schemaType, schemaProperty, path, {
     coerce,
     warnDataLoss,
+    allowSafeConversions,
+    allowSemanticConversions,
+    semanticConversionRules,
+    invalidConversionAction,
+    warnOnCoercion,
   });
   warnings.push(...result.warnings);
   return { value: result.value, warnings };
@@ -84,7 +115,15 @@ function transformToType(
   type: string,
   schemaProperty: SchemaProperty,
   path: string,
-  options: { coerce: boolean; warnDataLoss: boolean },
+  options: {
+    coerce: boolean;
+    warnDataLoss: boolean;
+    allowSafeConversions?: boolean;
+    allowSemanticConversions?: boolean;
+    semanticConversionRules?: string[];
+    invalidConversionAction?: "preserve" | "error" | "fallback";
+    warnOnCoercion?: boolean;
+  },
 ): TransformResult {
   const warnings: MappingWarning[] = [];
 
@@ -114,14 +153,51 @@ function transformToType(
 }
 
 /**
+ * Get default value for a given type
+ */
+function getDefaultValueForType(type: string): unknown {
+  switch (type) {
+    case "boolean":
+      return false;
+    case "string":
+      return "";
+    case "number":
+    case "integer":
+      return 0;
+    case "array":
+      return [];
+    case "object":
+      return {};
+    case "null":
+      return null;
+    default:
+      return null;
+  }
+}
+
+/**
  * Transform to boolean
  */
 function transformToBoolean(
   value: unknown,
   path: string,
-  options: { coerce: boolean; warnDataLoss: boolean },
+  options: {
+    coerce: boolean;
+    warnDataLoss: boolean;
+    allowSafeConversions?: boolean;
+    allowSemanticConversions?: boolean;
+    semanticConversionRules?: string[];
+    invalidConversionAction?: "preserve" | "error" | "fallback";
+    warnOnCoercion?: boolean;
+  },
 ): TransformResult {
   const warnings: MappingWarning[] = [];
+  const allowSafeConversions = options?.allowSafeConversions ?? true;
+  const allowSemanticConversions = options?.allowSemanticConversions ?? false;
+  const semanticConversionRules = options?.semanticConversionRules ?? [];
+  const invalidConversionAction = options?.invalidConversionAction ??
+    "preserve";
+  const warnOnCoercion = options?.warnOnCoercion ?? true;
 
   // Already boolean
   if (typeof value === "boolean") {
@@ -136,99 +212,284 @@ function transformToBoolean(
     );
   }
 
-  // Array to boolean - take first element
+  // Array to boolean
   if (Array.isArray(value)) {
     if (value.length === 0) {
-      throw new TypeTransformationError(
-        "Cannot convert empty array to boolean",
-        path,
-        { value },
-      );
+      // Empty array - PRESERVE with warning
+      if (invalidConversionAction === "preserve") {
+        if (warnOnCoercion) {
+          warnings.push({
+            code: WarningCode.INVALID_CONVERSION,
+            message: "Cannot convert empty array to boolean",
+            path,
+            severity: "warning",
+            details: {
+              originalValue: value,
+              suggestion: "Provide a non-empty array or boolean value",
+            },
+          });
+        }
+        return { value, warnings };
+      } else if (invalidConversionAction === "error") {
+        throw new TypeTransformationError(
+          "Cannot convert empty array to boolean",
+          path,
+          { value },
+        );
+      } else {
+        // fallback
+        const fallbackValue = getDefaultValueForType("boolean");
+        if (warnOnCoercion) {
+          warnings.push({
+            code: WarningCode.INVALID_CONVERSION,
+            message: "Cannot convert empty array to boolean, using fallback",
+            path,
+            severity: "warning",
+            details: {
+              originalValue: value,
+              transformedValue: fallbackValue,
+            },
+          });
+        }
+        return { value: fallbackValue, warnings };
+      }
     }
-    warnings.push({
-      code: WarningCode.TYPE_COERCION,
-      message: "Array coerced to boolean (first element)",
-      path,
-      severity: "info",
-      details: {
-        originalValue: value,
-        transformedValue: value[0],
-        suggestion: "Use boolean value directly instead of array",
-      },
-    });
-    const result = transformToBoolean(value[0], path, options);
-    warnings.push(...result.warnings);
-    return { value: result.value, warnings };
+
+    // Multi-element array - PRESERVE with warning
+    if (value.length > 1) {
+      if (invalidConversionAction === "preserve") {
+        if (warnOnCoercion) {
+          warnings.push({
+            code: WarningCode.AMBIGUOUS_CONVERSION,
+            message: "Multi-element array cannot be unwrapped to boolean",
+            path,
+            severity: "warning",
+            details: {
+              originalValue: value,
+              suggestion: "Fix source data or change schema type to array",
+            },
+          });
+        }
+        return { value, warnings };
+      } else if (invalidConversionAction === "error") {
+        throw new TypeTransformationError(
+          "Cannot convert multi-element array to boolean (ambiguous which element to use)",
+          path,
+          { value },
+        );
+      } else {
+        // fallback
+        const fallbackValue = getDefaultValueForType("boolean");
+        if (warnOnCoercion) {
+          warnings.push({
+            code: WarningCode.AMBIGUOUS_CONVERSION,
+            message:
+              "Multi-element array cannot be unwrapped to boolean, using fallback",
+            path,
+            severity: "warning",
+            details: {
+              originalValue: value,
+              transformedValue: fallbackValue,
+            },
+          });
+        }
+        return { value: fallbackValue, warnings };
+      }
+    }
+
+    // Single-element array - safe conversion
+    if (allowSafeConversions) {
+      if (warnOnCoercion) {
+        warnings.push({
+          code: WarningCode.TYPE_COERCION,
+          message: "Single-element array unwrapped to boolean",
+          path,
+          severity: "info",
+          details: {
+            originalValue: value,
+            transformedValue: value[0],
+            suggestion: "Use boolean value directly instead of array",
+          },
+        });
+      }
+      const result = transformToBoolean(value[0], path, options);
+      warnings.push(...result.warnings);
+      return { value: result.value, warnings };
+    }
   }
 
   // String to boolean
   if (typeof value === "string") {
     const lower = value.toLowerCase().trim();
-    if (
-      lower === "true" || lower === "yes" || lower === "on" || lower === "1"
-    ) {
-      warnings.push({
-        code: WarningCode.TYPE_COERCION,
-        message: "String coerced to boolean",
-        path,
-        severity: "info",
-        details: { originalValue: value, transformedValue: true },
-      });
+
+    // Safe conversions: only "true" and "false"
+    if (lower === "true") {
+      if (allowSafeConversions && warnOnCoercion) {
+        warnings.push({
+          code: WarningCode.TYPE_COERCION,
+          message: "String parsed to boolean",
+          path,
+          severity: "info",
+          details: { originalValue: value, transformedValue: true },
+        });
+      }
       return { value: true, warnings };
     }
-    if (
-      lower === "false" || lower === "no" || lower === "off" || lower === "0"
-    ) {
-      warnings.push({
-        code: WarningCode.TYPE_COERCION,
-        message: "String coerced to boolean",
-        path,
-        severity: "info",
-        details: { originalValue: value, transformedValue: false },
-      });
+    if (lower === "false") {
+      if (allowSafeConversions && warnOnCoercion) {
+        warnings.push({
+          code: WarningCode.TYPE_COERCION,
+          message: "String parsed to boolean",
+          path,
+          severity: "info",
+          details: { originalValue: value, transformedValue: false },
+        });
+      }
       return { value: false, warnings };
     }
-    throw new TypeTransformationError(
-      `Cannot convert string "${value}" to boolean`,
-      path,
-      { value },
-    );
+
+    // Non-standard strings (yes/no/on/off/1/0) - PRESERVE with warning
+    if (invalidConversionAction === "preserve") {
+      if (warnOnCoercion) {
+        warnings.push({
+          code: WarningCode.INVALID_CONVERSION,
+          message:
+            `Cannot convert string "${value}" to boolean (only "true"/"false" allowed)`,
+          path,
+          severity: "warning",
+          details: {
+            originalValue: value,
+            suggestion: 'Use "true" or "false" for safe conversion',
+          },
+        });
+      }
+      return { value, warnings };
+    } else if (invalidConversionAction === "error") {
+      throw new TypeTransformationError(
+        `Cannot convert string "${value}" to boolean`,
+        path,
+        { value },
+      );
+    } else {
+      // fallback
+      const fallbackValue = getDefaultValueForType("boolean");
+      if (warnOnCoercion) {
+        warnings.push({
+          code: WarningCode.INVALID_CONVERSION,
+          message:
+            `Cannot convert string "${value}" to boolean, using fallback`,
+          path,
+          severity: "warning",
+          details: {
+            originalValue: value,
+            transformedValue: fallbackValue,
+          },
+        });
+      }
+      return { value: fallbackValue, warnings };
+    }
   }
 
-  // Number to boolean
+  // Number to boolean - semantic conversion
   if (typeof value === "number") {
-    if (value === 1) {
-      warnings.push({
-        code: WarningCode.TYPE_COERCION,
-        message: "Number coerced to boolean",
-        path,
-        severity: "info",
-        details: { originalValue: value, transformedValue: true },
-      });
-      return { value: true, warnings };
+    const canConvertNumberToBoolean = allowSemanticConversions &&
+      semanticConversionRules.includes("number-to-boolean");
+
+    if (canConvertNumberToBoolean && (value === 0 || value === 1)) {
+      const boolValue = value === 1;
+      if (warnOnCoercion) {
+        warnings.push({
+          code: WarningCode.TYPE_COERCION,
+          message: "Number coerced to boolean (semantic conversion)",
+          path,
+          severity: "info",
+          details: { originalValue: value, transformedValue: boolValue },
+        });
+      }
+      return { value: boolValue, warnings };
     }
-    if (value === 0) {
-      warnings.push({
-        code: WarningCode.TYPE_COERCION,
-        message: "Number coerced to boolean",
+
+    // Cannot convert - PRESERVE
+    if (invalidConversionAction === "preserve") {
+      if (warnOnCoercion) {
+        warnings.push({
+          code: WarningCode.INVALID_CONVERSION,
+          message:
+            `Cannot convert number ${value} to boolean (semantic conversion disabled or value not 0/1)`,
+          path,
+          severity: "warning",
+          details: {
+            originalValue: value,
+            suggestion:
+              "Enable semantic conversions with number-to-boolean rule, or use boolean values",
+          },
+        });
+      }
+      return { value, warnings };
+    } else if (invalidConversionAction === "error") {
+      throw new TypeTransformationError(
+        `Cannot convert number ${value} to boolean (only 0 and 1 are supported with semantic conversions)`,
         path,
-        severity: "info",
-        details: { originalValue: value, transformedValue: false },
-      });
-      return { value: false, warnings };
+        { value },
+      );
+    } else {
+      // fallback
+      const fallbackValue = getDefaultValueForType("boolean");
+      if (warnOnCoercion) {
+        warnings.push({
+          code: WarningCode.INVALID_CONVERSION,
+          message: `Cannot convert number ${value} to boolean, using fallback`,
+          path,
+          severity: "warning",
+          details: {
+            originalValue: value,
+            transformedValue: fallbackValue,
+          },
+        });
+      }
+      return { value: fallbackValue, warnings };
     }
+  }
+
+  // Other types - PRESERVE or error
+  if (invalidConversionAction === "preserve") {
+    if (warnOnCoercion) {
+      warnings.push({
+        code: WarningCode.INVALID_CONVERSION,
+        message: `Cannot convert ${typeof value} to boolean`,
+        path,
+        severity: "warning",
+        details: {
+          originalValue: value,
+          suggestion:
+            "Use boolean value or enable appropriate semantic conversions",
+        },
+      });
+    }
+    return { value, warnings };
+  } else if (invalidConversionAction === "error") {
     throw new TypeTransformationError(
-      `Cannot convert number ${value} to boolean (only 0 and 1 are supported)`,
+      `Cannot convert ${typeof value} to boolean`,
       path,
       { value },
     );
+  } else {
+    // fallback
+    const fallbackValue = getDefaultValueForType("boolean");
+    if (warnOnCoercion) {
+      warnings.push({
+        code: WarningCode.INVALID_CONVERSION,
+        message: `Cannot convert ${typeof value} to boolean, using fallback`,
+        path,
+        severity: "warning",
+        details: {
+          originalValue: value,
+          transformedValue: fallbackValue,
+        },
+      });
+    }
+    return { value: fallbackValue, warnings };
   }
-
-  throw new TypeTransformationError(
-    `Cannot convert ${typeof value} to boolean`,
-    path,
-    { value },
-  );
 }
 
 /**
@@ -237,22 +498,42 @@ function transformToBoolean(
 function transformToNumber(
   value: unknown,
   path: string,
-  options: { coerce: boolean; warnDataLoss: boolean },
+  options: {
+    coerce: boolean;
+    warnDataLoss: boolean;
+    allowSafeConversions?: boolean;
+    allowSemanticConversions?: boolean;
+    semanticConversionRules?: string[];
+    invalidConversionAction?: "preserve" | "error" | "fallback";
+    warnOnCoercion?: boolean;
+  },
 ): TransformResult {
   const warnings: MappingWarning[] = [];
+  const allowSafeConversions = options?.allowSafeConversions ?? true;
+  const allowSemanticConversions = options?.allowSemanticConversions ?? false;
+  const semanticConversionRules = options?.semanticConversionRules ?? [];
+  const invalidConversionAction = options?.invalidConversionAction ??
+    "preserve";
+  const warnOnCoercion = options?.warnOnCoercion ?? true;
 
   // Already number
   if (typeof value === "number") {
-    // Handle NaN
+    // Handle NaN - preserve it with warning
     if (Number.isNaN(value)) {
-      warnings.push({
-        code: WarningCode.NAN_CONVERSION,
-        message: "NaN converted to null (JSON incompatible)",
-        path,
-        severity: "warning",
-        details: { originalValue: value, transformedValue: null },
-      });
-      return { value: null, warnings };
+      if (warnOnCoercion) {
+        warnings.push({
+          code: WarningCode.NAN_CONVERSION,
+          message: "NaN value preserved (may cause JSON serialization issues)",
+          path,
+          severity: "warning",
+          details: {
+            originalValue: value,
+            suggestion:
+              "Replace NaN with null or a valid number for JSON compatibility",
+          },
+        });
+      }
+      return { value, warnings };
     }
     return { value, warnings };
   }
@@ -265,66 +546,271 @@ function transformToNumber(
     );
   }
 
-  // Array to number - take first element
+  // Array to number
   if (Array.isArray(value)) {
     if (value.length === 0) {
-      throw new TypeTransformationError(
-        "Cannot convert empty array to number",
-        path,
-        { value },
-      );
+      // Empty array - PRESERVE with warning
+      if (invalidConversionAction === "preserve") {
+        if (warnOnCoercion) {
+          warnings.push({
+            code: WarningCode.INVALID_CONVERSION,
+            message: "Cannot convert empty array to number",
+            path,
+            severity: "warning",
+            details: {
+              originalValue: value,
+              suggestion: "Provide a non-empty array or number value",
+            },
+          });
+        }
+        return { value, warnings };
+      } else if (invalidConversionAction === "error") {
+        throw new TypeTransformationError(
+          "Cannot convert empty array to number",
+          path,
+          { value },
+        );
+      } else {
+        // fallback
+        const fallbackValue = getDefaultValueForType("number");
+        if (warnOnCoercion) {
+          warnings.push({
+            code: WarningCode.INVALID_CONVERSION,
+            message: "Cannot convert empty array to number, using fallback",
+            path,
+            severity: "warning",
+            details: {
+              originalValue: value,
+              transformedValue: fallbackValue,
+            },
+          });
+        }
+        return { value: fallbackValue, warnings };
+      }
     }
-    warnings.push({
-      code: WarningCode.TYPE_COERCION,
-      message: "Array coerced to number (first element)",
-      path,
-      severity: "info",
-      details: { originalValue: value, transformedValue: value[0] },
-    });
-    const result = transformToNumber(value[0], path, options);
-    warnings.push(...result.warnings);
-    return { value: result.value, warnings };
+
+    // Multi-element array - PRESERVE with warning
+    if (value.length > 1) {
+      if (invalidConversionAction === "preserve") {
+        if (warnOnCoercion) {
+          warnings.push({
+            code: WarningCode.AMBIGUOUS_CONVERSION,
+            message: "Multi-element array cannot be unwrapped to number",
+            path,
+            severity: "warning",
+            details: {
+              originalValue: value,
+              suggestion: "Fix source data or change schema type to array",
+            },
+          });
+        }
+        return { value, warnings };
+      } else if (invalidConversionAction === "error") {
+        throw new TypeTransformationError(
+          "Cannot convert multi-element array to number (ambiguous which element to use)",
+          path,
+          { value },
+        );
+      } else {
+        // fallback
+        const fallbackValue = getDefaultValueForType("number");
+        if (warnOnCoercion) {
+          warnings.push({
+            code: WarningCode.AMBIGUOUS_CONVERSION,
+            message:
+              "Multi-element array cannot be unwrapped to number, using fallback",
+            path,
+            severity: "warning",
+            details: {
+              originalValue: value,
+              transformedValue: fallbackValue,
+            },
+          });
+        }
+        return { value: fallbackValue, warnings };
+      }
+    }
+
+    // Single-element array - safe conversion
+    if (allowSafeConversions) {
+      if (warnOnCoercion) {
+        warnings.push({
+          code: WarningCode.TYPE_COERCION,
+          message: "Single-element array unwrapped to number",
+          path,
+          severity: "info",
+          details: {
+            originalValue: value,
+            transformedValue: value[0],
+            suggestion: "Use number value directly instead of array",
+          },
+        });
+      }
+      const result = transformToNumber(value[0], path, options);
+      warnings.push(...result.warnings);
+      return { value: result.value, warnings };
+    }
   }
 
   // String to number
   if (typeof value === "string") {
     const trimmed = value.trim();
     const num = parseFloat(trimmed);
+
+    // Non-numeric string - PRESERVE with warning
     if (Number.isNaN(num)) {
+      if (invalidConversionAction === "preserve") {
+        if (warnOnCoercion) {
+          warnings.push({
+            code: WarningCode.INVALID_CONVERSION,
+            message: `Cannot parse string "${value}" to number`,
+            path,
+            severity: "warning",
+            details: {
+              originalValue: value,
+              suggestion: "Fix source data or change schema type to string",
+            },
+          });
+        }
+        return { value, warnings };
+      } else if (invalidConversionAction === "error") {
+        throw new TypeTransformationError(
+          `Cannot convert string "${value}" to number`,
+          path,
+          { value },
+        );
+      } else {
+        // fallback
+        const fallbackValue = getDefaultValueForType("number");
+        if (warnOnCoercion) {
+          warnings.push({
+            code: WarningCode.INVALID_CONVERSION,
+            message: `Cannot parse string "${value}" to number, using fallback`,
+            path,
+            severity: "warning",
+            details: {
+              originalValue: value,
+              transformedValue: fallbackValue,
+            },
+          });
+        }
+        return { value: fallbackValue, warnings };
+      }
+    }
+
+    // Valid numeric string - safe conversion
+    if (allowSafeConversions && warnOnCoercion) {
+      warnings.push({
+        code: WarningCode.TYPE_COERCION,
+        message: "String parsed to number",
+        path,
+        severity: "info",
+        details: { originalValue: value, transformedValue: num },
+      });
+    }
+    return { value: num, warnings };
+  }
+
+  // Boolean to number - semantic conversion
+  if (typeof value === "boolean") {
+    const canConvertBooleanToNumber = allowSemanticConversions &&
+      semanticConversionRules.includes("boolean-to-number");
+
+    if (canConvertBooleanToNumber) {
+      const num = value ? 1 : 0;
+      if (warnOnCoercion) {
+        warnings.push({
+          code: WarningCode.TYPE_COERCION,
+          message: "Boolean coerced to number (semantic conversion)",
+          path,
+          severity: "info",
+          details: { originalValue: value, transformedValue: num },
+        });
+      }
+      return { value: num, warnings };
+    }
+
+    // Cannot convert - PRESERVE
+    if (invalidConversionAction === "preserve") {
+      if (warnOnCoercion) {
+        warnings.push({
+          code: WarningCode.INVALID_CONVERSION,
+          message:
+            "Cannot convert boolean to number (semantic conversion disabled)",
+          path,
+          severity: "warning",
+          details: {
+            originalValue: value,
+            suggestion:
+              "Enable semantic conversions with boolean-to-number rule, or use number values",
+          },
+        });
+      }
+      return { value, warnings };
+    } else if (invalidConversionAction === "error") {
       throw new TypeTransformationError(
-        `Cannot convert string "${value}" to number`,
+        "Cannot convert boolean to number (semantic conversion disabled)",
         path,
         { value },
       );
+    } else {
+      // fallback
+      const fallbackValue = getDefaultValueForType("number");
+      if (warnOnCoercion) {
+        warnings.push({
+          code: WarningCode.INVALID_CONVERSION,
+          message: "Cannot convert boolean to number, using fallback",
+          path,
+          severity: "warning",
+          details: {
+            originalValue: value,
+            transformedValue: fallbackValue,
+          },
+        });
+      }
+      return { value: fallbackValue, warnings };
     }
-    warnings.push({
-      code: WarningCode.TYPE_COERCION,
-      message: "String coerced to number",
-      path,
-      severity: "info",
-      details: { originalValue: value, transformedValue: num },
-    });
-    return { value: num, warnings };
   }
 
-  // Boolean to number
-  if (typeof value === "boolean") {
-    const num = value ? 1 : 0;
-    warnings.push({
-      code: WarningCode.TYPE_COERCION,
-      message: "Boolean coerced to number",
+  // Other types - PRESERVE or error
+  if (invalidConversionAction === "preserve") {
+    if (warnOnCoercion) {
+      warnings.push({
+        code: WarningCode.INVALID_CONVERSION,
+        message: `Cannot convert ${typeof value} to number`,
+        path,
+        severity: "warning",
+        details: {
+          originalValue: value,
+          suggestion:
+            "Use number value or enable appropriate semantic conversions",
+        },
+      });
+    }
+    return { value, warnings };
+  } else if (invalidConversionAction === "error") {
+    throw new TypeTransformationError(
+      `Cannot convert ${typeof value} to number`,
       path,
-      severity: "info",
-      details: { originalValue: value, transformedValue: num },
-    });
-    return { value: num, warnings };
+      { value },
+    );
+  } else {
+    // fallback
+    const fallbackValue = getDefaultValueForType("number");
+    if (warnOnCoercion) {
+      warnings.push({
+        code: WarningCode.INVALID_CONVERSION,
+        message: `Cannot convert ${typeof value} to number, using fallback`,
+        path,
+        severity: "warning",
+        details: {
+          originalValue: value,
+          transformedValue: fallbackValue,
+        },
+      });
+    }
+    return { value: fallbackValue, warnings };
   }
-
-  throw new TypeTransformationError(
-    `Cannot convert ${typeof value} to number`,
-    path,
-    { value },
-  );
 }
 
 /**
@@ -333,9 +819,20 @@ function transformToNumber(
 function transformToInteger(
   value: unknown,
   path: string,
-  options: { coerce: boolean; warnDataLoss: boolean },
+  options: {
+    coerce: boolean;
+    warnDataLoss: boolean;
+    allowSafeConversions?: boolean;
+    allowSemanticConversions?: boolean;
+    semanticConversionRules?: string[];
+    invalidConversionAction?: "preserve" | "error" | "fallback";
+    warnOnCoercion?: boolean;
+  },
 ): TransformResult {
   const warnings: MappingWarning[] = [];
+  const invalidConversionAction = options?.invalidConversionAction ??
+    "preserve";
+  const warnOnCoercion = options?.warnOnCoercion ?? true;
 
   // First convert to number
   const numberResult = transformToNumber(value, path, options);
@@ -352,23 +849,46 @@ function transformToInteger(
     return { value: num, warnings };
   }
 
-  // Truncate to integer
-  const intValue = num >= 0 ? Math.floor(num) : Math.ceil(num);
-  if (options.warnDataLoss) {
-    warnings.push({
-      code: WarningCode.PRECISION_LOSS,
-      message: `Precision loss: ${path} (${num} → ${intValue})`,
+  // Float to integer - PRESERVE with warning (default behavior)
+  if (invalidConversionAction === "preserve") {
+    if (warnOnCoercion) {
+      warnings.push({
+        code: WarningCode.VALUE_PRESERVED,
+        message: `Float value preserved (precision loss if truncated)`,
+        path,
+        severity: "warning",
+        details: {
+          originalValue: num,
+          suggestion:
+            "Use integer values if precision is important, or change schema type to number",
+        },
+      });
+    }
+    return { value: num, warnings };
+  } else if (invalidConversionAction === "error") {
+    throw new TypeTransformationError(
+      `Cannot convert float ${num} to integer (precision loss)`,
       path,
-      severity: "warning",
-      details: {
-        originalValue: num,
-        transformedValue: intValue,
-        suggestion: "Use integer values if precision is important",
-      },
-    });
+      { value: num },
+    );
+  } else {
+    // fallback - truncate to integer
+    const intValue = num >= 0 ? Math.floor(num) : Math.ceil(num);
+    if (warnOnCoercion) {
+      warnings.push({
+        code: WarningCode.PRECISION_LOSS,
+        message: `Precision loss: ${path} (${num} → ${intValue})`,
+        path,
+        severity: "warning",
+        details: {
+          originalValue: num,
+          transformedValue: intValue,
+          suggestion: "Use integer values if precision is important",
+        },
+      });
+    }
+    return { value: intValue, warnings };
   }
-
-  return { value: intValue, warnings };
 }
 
 /**
@@ -377,13 +897,88 @@ function transformToInteger(
 function transformToString(
   value: unknown,
   path: string,
-  options: { coerce: boolean; warnDataLoss: boolean },
+  options: {
+    coerce: boolean;
+    warnDataLoss: boolean;
+    allowSafeConversions?: boolean;
+    allowSemanticConversions?: boolean;
+    semanticConversionRules?: string[];
+    invalidConversionAction?: "preserve" | "error" | "fallback";
+    warnOnCoercion?: boolean;
+  },
 ): TransformResult {
   const warnings: MappingWarning[] = [];
+  const allowSafeConversions = options?.allowSafeConversions ?? true;
+  const allowSemanticConversions = options?.allowSemanticConversions ?? false;
+  const semanticConversionRules = options?.semanticConversionRules ?? [];
+  const invalidConversionAction = options?.invalidConversionAction ??
+    "preserve";
+  const warnOnCoercion = options?.warnOnCoercion ?? true;
 
   // Already string
   if (typeof value === "string") {
     return { value, warnings };
+  }
+
+  // Handle null/undefined - semantic conversion
+  if (value === null || value === undefined) {
+    const canConvertNullToEmptyString = allowSemanticConversions &&
+      semanticConversionRules.includes("null-to-empty-string");
+
+    if (canConvertNullToEmptyString) {
+      if (warnOnCoercion) {
+        warnings.push({
+          code: WarningCode.TYPE_COERCION,
+          message:
+            "Null/undefined coerced to empty string (semantic conversion)",
+          path,
+          severity: "info",
+          details: { originalValue: value, transformedValue: "" },
+        });
+      }
+      return { value: "", warnings };
+    }
+
+    // Cannot convert - PRESERVE
+    if (invalidConversionAction === "preserve") {
+      if (warnOnCoercion) {
+        warnings.push({
+          code: WarningCode.INVALID_CONVERSION,
+          message:
+            "Cannot convert null/undefined to string (semantic conversion disabled)",
+          path,
+          severity: "warning",
+          details: {
+            originalValue: value,
+            suggestion:
+              "Enable semantic conversions with null-to-empty-string rule, or provide string values",
+          },
+        });
+      }
+      return { value, warnings };
+    } else if (invalidConversionAction === "error") {
+      throw new TypeTransformationError(
+        "Cannot convert null/undefined to string (semantic conversion disabled)",
+        path,
+        { value },
+      );
+    } else {
+      // fallback
+      const fallbackValue = getDefaultValueForType("string");
+      if (warnOnCoercion) {
+        warnings.push({
+          code: WarningCode.INVALID_CONVERSION,
+          message: "Cannot convert null/undefined to string, using fallback",
+          path,
+          severity: "warning",
+          details: {
+            originalValue: value,
+            transformedValue: fallbackValue,
+          },
+        });
+      }
+      return { value: fallbackValue, warnings };
+    }
   }
 
   if (!options.coerce) {
@@ -394,69 +989,245 @@ function transformToString(
     );
   }
 
-  // Array to string - take first element
+  // Array to string
   if (Array.isArray(value)) {
     if (value.length === 0) {
-      throw new TypeTransformationError(
-        "Cannot convert empty array to string",
-        path,
-        { value },
-      );
+      // Empty array - PRESERVE with warning
+      if (invalidConversionAction === "preserve") {
+        if (warnOnCoercion) {
+          warnings.push({
+            code: WarningCode.INVALID_CONVERSION,
+            message: "Cannot convert empty array to string",
+            path,
+            severity: "warning",
+            details: {
+              originalValue: value,
+              suggestion: "Provide a non-empty array or string value",
+            },
+          });
+        }
+        return { value, warnings };
+      } else if (invalidConversionAction === "error") {
+        throw new TypeTransformationError(
+          "Cannot convert empty array to string",
+          path,
+          { value },
+        );
+      } else {
+        // fallback
+        const fallbackValue = getDefaultValueForType("string");
+        if (warnOnCoercion) {
+          warnings.push({
+            code: WarningCode.INVALID_CONVERSION,
+            message: "Cannot convert empty array to string, using fallback",
+            path,
+            severity: "warning",
+            details: {
+              originalValue: value,
+              transformedValue: fallbackValue,
+            },
+          });
+        }
+        return { value: fallbackValue, warnings };
+      }
     }
-    warnings.push({
-      code: WarningCode.TYPE_COERCION,
-      message: "Array coerced to string (first element)",
-      path,
-      severity: "info",
-      details: { originalValue: value, transformedValue: value[0] },
-    });
-    const result = transformToString(value[0], path, options);
-    warnings.push(...result.warnings);
-    return { value: result.value, warnings };
+
+    // Multi-element array - PRESERVE with warning
+    if (value.length > 1) {
+      if (invalidConversionAction === "preserve") {
+        if (warnOnCoercion) {
+          warnings.push({
+            code: WarningCode.AMBIGUOUS_CONVERSION,
+            message: "Multi-element array cannot be unwrapped to string",
+            path,
+            severity: "warning",
+            details: {
+              originalValue: value,
+              suggestion: "Fix source data or change schema type to array",
+            },
+          });
+        }
+        return { value, warnings };
+      } else if (invalidConversionAction === "error") {
+        throw new TypeTransformationError(
+          "Cannot convert multi-element array to string (ambiguous which element to use)",
+          path,
+          { value },
+        );
+      } else {
+        // fallback
+        const fallbackValue = getDefaultValueForType("string");
+        if (warnOnCoercion) {
+          warnings.push({
+            code: WarningCode.AMBIGUOUS_CONVERSION,
+            message:
+              "Multi-element array cannot be unwrapped to string, using fallback",
+            path,
+            severity: "warning",
+            details: {
+              originalValue: value,
+              transformedValue: fallbackValue,
+            },
+          });
+        }
+        return { value: fallbackValue, warnings };
+      }
+    }
+
+    // Single-element array - safe conversion
+    if (allowSafeConversions) {
+      if (warnOnCoercion) {
+        warnings.push({
+          code: WarningCode.TYPE_COERCION,
+          message: "Single-element array unwrapped to string",
+          path,
+          severity: "info",
+          details: {
+            originalValue: value,
+            transformedValue: value[0],
+            suggestion: "Use string value directly instead of array",
+          },
+        });
+      }
+      const result = transformToString(value[0], path, options);
+      warnings.push(...result.warnings);
+      return { value: result.value, warnings };
+    }
   }
 
-  // Date to ISO string
+  // Date to ISO string - safe conversion
   if (value instanceof Date) {
-    const isoString = value.toISOString();
-    warnings.push({
-      code: WarningCode.TYPE_COERCION,
-      message: "Date converted to ISO 8601 string",
-      path,
-      severity: "info",
-      details: { originalValue: value, transformedValue: isoString },
-    });
-    return { value: isoString, warnings };
+    if (allowSafeConversions) {
+      const isoString = value.toISOString();
+      if (warnOnCoercion) {
+        warnings.push({
+          code: WarningCode.TYPE_COERCION,
+          message: "Date converted to ISO 8601 string",
+          path,
+          severity: "info",
+          details: { originalValue: value, transformedValue: isoString },
+        });
+      }
+      return { value: isoString, warnings };
+    }
   }
 
-  // Object/Array to JSON string
+  // Object/Array to string - use String() conversion (lossy but safe)
   if (typeof value === "object" && value !== null) {
-    const jsonString = JSON.stringify(value);
-    if (options.warnDataLoss) {
+    if (allowSafeConversions) {
+      const strValue = String(value);
+      if (options.warnDataLoss && warnOnCoercion) {
+        warnings.push({
+          code: WarningCode.DATA_LOSS,
+          message: "Complex type converted to string (data loss)",
+          path,
+          severity: "warning",
+          details: {
+            originalValue: value,
+            transformedValue: strValue,
+            suggestion: "Consider using type: object if structure is important",
+          },
+        });
+      }
+      return { value: strValue, warnings };
+    } else {
+      // Cannot convert without safe conversions
+      if (invalidConversionAction === "preserve") {
+        if (options.warnDataLoss && warnOnCoercion) {
+          warnings.push({
+            code: WarningCode.INVALID_CONVERSION,
+            message: "Cannot convert complex type to string",
+            path,
+            severity: "warning",
+            details: {
+              originalValue: value,
+              suggestion:
+                "Enable safe conversions or use type: object if structure is important",
+            },
+          });
+        }
+        return { value, warnings };
+      } else if (invalidConversionAction === "error") {
+        throw new TypeTransformationError(
+          "Cannot convert complex type to string",
+          path,
+          { value },
+        );
+      } else {
+        // fallback - stringify
+        const strValue = String(value);
+        if (options.warnDataLoss && warnOnCoercion) {
+          warnings.push({
+            code: WarningCode.DATA_LOSS,
+            message: "Complex type converted to string (data loss)",
+            path,
+            severity: "warning",
+            details: {
+              originalValue: value,
+              transformedValue: strValue,
+              suggestion:
+                "Consider using type: object if structure is important",
+            },
+          });
+        }
+        return { value: strValue, warnings };
+      }
+    }
+  }
+
+  // Primitive to string - safe conversion
+  if (allowSafeConversions) {
+    const strValue = String(value);
+    if (warnOnCoercion) {
       warnings.push({
-        code: WarningCode.DATA_LOSS,
-        message: "Complex type serialized to JSON string",
+        code: WarningCode.TYPE_COERCION,
+        message: `${typeof value} coerced to string`,
+        path,
+        severity: "info",
+        details: { originalValue: value, transformedValue: strValue },
+      });
+    }
+    return { value: strValue, warnings };
+  }
+
+  // Cannot convert
+  if (invalidConversionAction === "preserve") {
+    if (warnOnCoercion) {
+      warnings.push({
+        code: WarningCode.INVALID_CONVERSION,
+        message: `Cannot convert ${typeof value} to string`,
         path,
         severity: "warning",
         details: {
           originalValue: value,
-          transformedValue: jsonString,
-          suggestion: "Consider using type: object if structure is important",
+          suggestion: "Use string value or enable safe conversions",
         },
       });
     }
-    return { value: jsonString, warnings };
+    return { value, warnings };
+  } else if (invalidConversionAction === "error") {
+    throw new TypeTransformationError(
+      `Cannot convert ${typeof value} to string`,
+      path,
+      { value },
+    );
+  } else {
+    // fallback
+    const fallbackValue = getDefaultValueForType("string");
+    if (warnOnCoercion) {
+      warnings.push({
+        code: WarningCode.INVALID_CONVERSION,
+        message: `Cannot convert ${typeof value} to string, using fallback`,
+        path,
+        severity: "warning",
+        details: {
+          originalValue: value,
+          transformedValue: fallbackValue,
+        },
+      });
+    }
+    return { value: fallbackValue, warnings };
   }
-
-  // Primitive to string
-  const strValue = String(value);
-  warnings.push({
-    code: WarningCode.TYPE_COERCION,
-    message: `${typeof value} coerced to string`,
-    path,
-    severity: "info",
-    details: { originalValue: value, transformedValue: strValue },
-  });
-  return { value: strValue, warnings };
 }
 
 /**
@@ -466,9 +1237,83 @@ function transformToArray(
   value: unknown,
   schemaProperty: SchemaProperty,
   path: string,
-  options: { coerce: boolean; warnDataLoss: boolean },
+  options: {
+    coerce: boolean;
+    warnDataLoss: boolean;
+    allowSafeConversions?: boolean;
+    allowSemanticConversions?: boolean;
+    semanticConversionRules?: string[];
+    invalidConversionAction?: "preserve" | "error" | "fallback";
+    warnOnCoercion?: boolean;
+  },
 ): TransformResult {
   const warnings: MappingWarning[] = [];
+  const allowSemanticConversions = options?.allowSemanticConversions ?? false;
+  const semanticConversionRules = options?.semanticConversionRules ?? [];
+  const invalidConversionAction = options?.invalidConversionAction ??
+    "preserve";
+  const warnOnCoercion = options?.warnOnCoercion ?? true;
+
+  // Handle null/undefined - semantic conversion
+  if (value === null || value === undefined) {
+    const canConvertNullToEmptyArray = allowSemanticConversions &&
+      semanticConversionRules.includes("null-to-empty-array");
+
+    if (canConvertNullToEmptyArray) {
+      if (warnOnCoercion) {
+        warnings.push({
+          code: WarningCode.TYPE_COERCION,
+          message:
+            "Null/undefined coerced to empty array (semantic conversion)",
+          path,
+          severity: "info",
+          details: { originalValue: value, transformedValue: [] },
+        });
+      }
+      return { value: [], warnings };
+    }
+
+    // Cannot convert - PRESERVE
+    if (invalidConversionAction === "preserve") {
+      if (warnOnCoercion) {
+        warnings.push({
+          code: WarningCode.INVALID_CONVERSION,
+          message:
+            "Cannot convert null/undefined to array (semantic conversion disabled)",
+          path,
+          severity: "warning",
+          details: {
+            originalValue: value,
+            suggestion:
+              "Enable semantic conversions with null-to-empty-array rule, or provide array values",
+          },
+        });
+      }
+      return { value, warnings };
+    } else if (invalidConversionAction === "error") {
+      throw new TypeTransformationError(
+        "Cannot convert null/undefined to array (semantic conversion disabled)",
+        path,
+        { value },
+      );
+    } else {
+      // fallback
+      const fallbackValue = getDefaultValueForType("array");
+      if (warnOnCoercion) {
+        warnings.push({
+          code: WarningCode.INVALID_CONVERSION,
+          message: "Cannot convert null/undefined to array, using fallback",
+          path,
+          severity: "warning",
+          details: {
+            originalValue: value,
+            transformedValue: fallbackValue,
+          },
+        });
+      }
+      return { value: fallbackValue, warnings };
+    }
+  }
 
   // Already array
   if (Array.isArray(value)) {
@@ -482,6 +1327,11 @@ function transformToArray(
           {
             coerceTypes: options.coerce,
             warnOnDataLoss: options.warnDataLoss,
+            allowSafeConversions: options.allowSafeConversions,
+            allowSemanticConversions: options.allowSemanticConversions,
+            semanticConversionRules: options.semanticConversionRules,
+            invalidConversionAction: options.invalidConversionAction,
+            warnOnCoercion: options.warnOnCoercion,
           },
         );
         warnings.push(...itemResult.warnings);
@@ -521,7 +1371,15 @@ function transformToArray(
 function transformToObject(
   value: unknown,
   path: string,
-  _options: { coerce: boolean; warnDataLoss: boolean },
+  _options: {
+    coerce: boolean;
+    warnDataLoss: boolean;
+    allowSafeConversions?: boolean;
+    allowSemanticConversions?: boolean;
+    semanticConversionRules?: string[];
+    invalidConversionAction?: "preserve" | "error" | "fallback";
+    warnOnCoercion?: boolean;
+  },
 ): TransformResult {
   const warnings: MappingWarning[] = [];
 

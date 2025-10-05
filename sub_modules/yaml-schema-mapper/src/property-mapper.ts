@@ -6,7 +6,7 @@
  */
 
 import type { SchemaProperty } from "./types.ts";
-import { MappingWarning, WarningCode } from "./types.ts";
+import { type MappingWarning, WarningCode } from "./types.ts";
 
 /**
  * Property mapping result
