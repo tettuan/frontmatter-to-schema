@@ -9,7 +9,7 @@ import {
 } from "../../domain/frontmatter/entities/markdown-document.ts";
 import { FrontmatterData } from "../../domain/frontmatter/value-objects/frontmatter-data.ts";
 import { FileSystemPort } from "../../infrastructure/ports/file-system-port.ts";
-import { SchemaData } from "../../domain/schema/entities/schema.ts";
+import { Schema } from "../../domain/schema/entities/schema.ts";
 import {
   DocumentLoader,
   UniversalPipeline,
@@ -137,7 +137,7 @@ export interface PipelineResult {
  * Eliminates architectural violations by delegating to configurable pipeline stages.
  */
 export class PipelineOrchestrator implements DocumentLoader {
-  private currentSchema?: SchemaData; // ← Schema for Stage 0 transformation
+  private currentSchema?: Schema; // ← Schema for Stage 0 transformation
 
   private constructor(
     private readonly fileSystem: FileSystemPort,
@@ -384,17 +384,16 @@ export class PipelineOrchestrator implements DocumentLoader {
 
     const result = executionResult.unwrap();
 
-    // Load schema early to use for Stage 0 (yaml-schema-mapper) and Phase 1 directive processing
+    // Store schema for Stage 0 transformation in loadMarkdownDocument()
+    this.currentSchema = result.schema;
+
+    // Load schema data for Phase 1 directive processing
     const schemaDataResult = await this.schemaDirectiveProcessor.loadSchemaData(
       config.schemaPath,
     );
     if (schemaDataResult.isError()) {
       return Result.error(schemaDataResult.unwrapError());
     }
-
-    // Store schema for Stage 0 transformation in loadMarkdownDocument()
-    // Cast to SchemaData - loadSchemaData returns Record<string, unknown> but it's structurally compatible
-    this.currentSchema = schemaDataResult.unwrap() as SchemaData;
 
     // Phase 1: Apply per-file directives to each document BEFORE template processing
     // DEBUG: Log document count
@@ -633,11 +632,14 @@ export class PipelineOrchestrator implements DocumentLoader {
    */
   async loadMarkdownDocument(
     filePath: string,
+    schema?: Schema,
   ): Promise<Result<MarkdownDocument, ProcessingError>> {
+    // Use provided schema or fallback to currentSchema for backward compatibility
+    const schemaToUse = schema || this.currentSchema;
     // Delegate to frontmatter parsing service with schema for Stage 0 transformation
     return await this.frontmatterParsingService.loadMarkdownDocument(
       filePath,
-      this.currentSchema,
+      schemaToUse,
     );
   }
 }

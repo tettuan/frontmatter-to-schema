@@ -12,6 +12,7 @@ import { ConfigurationManager } from "./strategies/configuration-strategy.ts";
 export interface DocumentLoader {
   loadMarkdownDocument(
     filePath: string,
+    schema?: Schema,
   ): Promise<Result<MarkdownDocument, ProcessingError>>;
 }
 
@@ -35,6 +36,7 @@ export interface PipelineContext {
   readonly fileSystem: FileSystemPort;
   readonly configManager: ConfigurationManager;
   readonly documentLoader: DocumentLoader;
+  schema?: Schema; // Stage 0 schema for yaml-schema-mapper
 }
 
 /**
@@ -106,8 +108,9 @@ export class SchemaLoadingStage implements PipelineStage<string, Schema> {
     }
 
     // Parse JSON
+    let schemaData: any;
     try {
-      JSON.parse(contentResult.unwrap());
+      schemaData = JSON.parse(contentResult.unwrap());
     } catch (error) {
       return Result.error(
         new ProcessingError(
@@ -132,8 +135,10 @@ export class SchemaLoadingStage implements PipelineStage<string, Schema> {
       );
     }
 
+    // Create and resolve schema
     const schema = Schema.create(schemaIdResult.unwrap(), pathResult.unwrap());
-    return Result.ok(schema);
+    const resolvedSchema = schema.markAsResolved(schemaData);
+    return Result.ok(resolvedSchema);
   }
 }
 
@@ -239,6 +244,7 @@ export class InputProcessingStage
       for (const path of inputPath) {
         const docResult = await context.documentLoader.loadMarkdownDocument(
           path,
+          context.schema,
         );
         if (docResult.isOk()) {
           documents.push(docResult.unwrap());
@@ -279,6 +285,7 @@ export class InputProcessingStage
     // Handle single path - CLI has already resolved it to an actual file
     const docResult = await context.documentLoader.loadMarkdownDocument(
       inputPath,
+      context.schema,
     );
     if (docResult.isError()) {
       return Result.error(docResult.unwrapError());
@@ -352,6 +359,9 @@ export class UniversalPipeline {
     if (templateResult.isError()) {
       return Result.error(templateResult.unwrapError());
     }
+
+    // Set schema in context for Stage 0 (yaml-schema-mapper)
+    this.context.schema = schemaResult.unwrap();
 
     // Stage 3: Process Input
     const inputStageResult = this.getStage<

@@ -6,7 +6,7 @@ import { FrontmatterData } from "../value-objects/frontmatter-data.ts";
 import { FileSystemPort } from "../../../infrastructure/ports/file-system-port.ts";
 import { createFileError } from "../../shared/types/file-errors.ts";
 import { extract as extractYaml } from "jsr:@std/front-matter@1.0.5/yaml";
-import { SchemaData } from "../../schema/entities/schema.ts";
+import { Schema, SchemaData } from "../../schema/entities/schema.ts";
 import { mapDataToSchema } from "../../../../sub_modules/yaml-schema-mapper/src/mod.ts";
 
 /**
@@ -43,7 +43,7 @@ export class FrontmatterParsingService {
    */
   async loadMarkdownDocument(
     filePath: string,
-    schema?: SchemaData,
+    schema?: Schema,
   ): Promise<Result<MarkdownDocument, ProcessingError>> {
     // Read file using FileSystemPort
     const contentResult = await this.fileSystem.readTextFile(filePath);
@@ -71,10 +71,26 @@ export class FrontmatterParsingService {
       );
     }
 
+    // Extract schema data for Stage 0 transformation
+    let schemaData: SchemaData | undefined;
+    if (schema) {
+      const schemaDataResult = schema.getData();
+      if (schemaDataResult.isError()) {
+        return Result.error(
+          new ProcessingError(
+            `Failed to extract schema data: ${schemaDataResult.unwrapError().message}`,
+            "SCHEMA_DATA_EXTRACTION_ERROR",
+            { filePath, error: schemaDataResult.unwrapError() },
+          ),
+        );
+      }
+      schemaData = schemaDataResult.unwrap();
+    }
+
     // Parse frontmatter with schema for Stage 0 transformation
     const frontmatterResult = this.parseFrontmatter(
       contentResult.unwrap(),
-      schema,
+      schemaData,
     );
     if (frontmatterResult.isError()) {
       return Result.error(
@@ -158,6 +174,7 @@ export class FrontmatterParsingService {
             coerceTypes: true,
             validateTypes: true,
             strict: false,
+            invalidConversionAction: "preserve", // Preserve original values for ambiguous conversions
           },
         });
 
