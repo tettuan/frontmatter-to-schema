@@ -74,17 +74,28 @@ export class FrontmatterParsingService {
     // Extract schema data for Stage 0 transformation
     let schemaData: SchemaData | undefined;
     if (schema) {
-      const schemaDataResult = schema.getData();
-      if (schemaDataResult.isError()) {
-        return Result.error(
-          new ProcessingError(
-            `Failed to extract schema data: ${schemaDataResult.unwrapError().message}`,
-            "SCHEMA_DATA_EXTRACTION_ERROR",
-            { filePath, error: schemaDataResult.unwrapError() },
-          ),
-        );
+      // If schema has x-frontmatter-part directive, use items schema for individual documents
+      // This ensures each document is validated against the correct schema (e.g., command_schema.json)
+      // rather than the container schema (e.g., registry_schema.json)
+      const itemsSchema = schema.getFrontmatterPartItemsSchema();
+
+      if (itemsSchema) {
+        // Use items schema for Stage 0 processing of individual documents
+        schemaData = itemsSchema;
+      } else {
+        // Use full schema if no x-frontmatter-part directive
+        const schemaDataResult = schema.getData();
+        if (schemaDataResult.isError()) {
+          return Result.error(
+            new ProcessingError(
+              `Failed to extract schema data: ${schemaDataResult.unwrapError().message}`,
+              "SCHEMA_DATA_EXTRACTION_ERROR",
+              { filePath, error: schemaDataResult.unwrapError() },
+            ),
+          );
+        }
+        schemaData = schemaDataResult.unwrap();
       }
-      schemaData = schemaDataResult.unwrap();
     }
 
     // Parse frontmatter with schema for Stage 0 transformation

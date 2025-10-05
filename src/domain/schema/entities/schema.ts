@@ -234,4 +234,56 @@ export class Schema {
 
     return property[DIRECTIVE_NAMES.FRONTMATTER_PART] === true;
   }
+
+  /**
+   * Returns the items schema for x-frontmatter-part property.
+   * This schema should be used for Stage 0 (yaml-schema-mapper) when processing individual documents.
+   * Returns null if no x-frontmatter-part directive found or schema not resolved.
+   */
+  getFrontmatterPartItemsSchema(): SchemaData | null {
+    if (this.state.kind !== "Resolved") {
+      return null;
+    }
+
+    const { schema } = this.state;
+    return this.findFrontmatterPartItemsSchema(schema.properties);
+  }
+
+  /**
+   * Recursively searches for x-frontmatter-part property and returns its items schema.
+   */
+  private findFrontmatterPartItemsSchema(
+    properties: Record<string, unknown> | undefined,
+  ): SchemaData | null {
+    if (!properties) {
+      return null;
+    }
+
+    for (const property of Object.values(properties)) {
+      if (!this.isValidPropertyObject(property)) {
+        continue;
+      }
+
+      // Check if this property has x-frontmatter-part: true
+      if (this.isPropertyWithDirective(property)) {
+        // Return items schema if it exists
+        if (property.items && this.isValidPropertyObject(property.items)) {
+          return property.items as SchemaData;
+        }
+        return null;
+      }
+
+      // Check nested properties
+      if (
+        property.properties && this.isValidPropertyObject(property.properties)
+      ) {
+        const found = this.findFrontmatterPartItemsSchema(property.properties);
+        if (found) {
+          return found;
+        }
+      }
+    }
+
+    return null;
+  }
 }
