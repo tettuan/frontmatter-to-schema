@@ -132,7 +132,7 @@ export class SchemaTemplateResolver {
       return null;
     }
 
-    for (const [propName, propSchema] of Object.entries(properties)) {
+    for (const [_propName, propSchema] of Object.entries(properties)) {
       if (typeof propSchema === "object" && propSchema !== null) {
         const schema = propSchema as Record<string, unknown>;
         if (schema[DIRECTIVE_NAMES.FRONTMATTER_PART] === true) {

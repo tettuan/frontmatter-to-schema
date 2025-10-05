@@ -110,19 +110,35 @@ export class SchemaLoadingStage implements PipelineStage<string, Schema> {
     // Parse JSON and resolve $ref references
     let schemaData: any;
     try {
-      // Use @apidevtools/json-schema-ref-parser to resolve $ref
-      const $RefParser = (await import("npm:@apidevtools/json-schema-ref-parser@11")).default;
-      schemaData = await $RefParser.dereference(schemaPath);
+      const schemaContent = contentResult.unwrap();
+      const parsedSchema = JSON.parse(schemaContent);
+
+      // Check if schema contains $ref - if so, use $RefParser for resolution
+      const hasRefs = JSON.stringify(parsedSchema).includes('"$ref"');
+
+      if (hasRefs) {
+        // Use @apidevtools/json-schema-ref-parser to resolve $ref
+        const $RefParser =
+          (await import("npm:@apidevtools/json-schema-ref-parser@11")).default;
+        schemaData = await $RefParser.dereference(schemaPath);
+      } else {
+        // No $ref, use parsed schema as-is
+        schemaData = parsedSchema;
+      }
     } catch (error) {
       // Distinguish between file access errors and schema parse errors
-      const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorMessage = error instanceof Error
+        ? error.message
+        : String(error);
       const isFileAccessError = errorMessage.includes("ENOENT") ||
-                                errorMessage.includes("no such file") ||
-                                errorMessage.includes("cannot find");
+        errorMessage.includes("no such file") ||
+        errorMessage.includes("cannot find");
 
       return Result.error(
         new ProcessingError(
-          `Failed to ${isFileAccessError ? "access" : "parse or dereference"} schema: ${errorMessage}`,
+          `Failed to ${
+            isFileAccessError ? "access" : "parse or dereference"
+          } schema: ${errorMessage}`,
           isFileAccessError ? "INPUT_ACCESS_ERROR" : "SCHEMA_PARSE_ERROR",
           { schemaPath, error },
         ),
