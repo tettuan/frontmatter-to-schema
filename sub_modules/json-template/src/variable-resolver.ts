@@ -31,22 +31,62 @@ export class VariableResolver {
   }
 
   private resolvePath(obj: unknown, path: string): VariableValue {
+    const debugEnabled = Deno.env.get("DEBUG_TEMPLATE") === "true";
+
     if (obj === null || obj === undefined) {
       throw new VariableNotFoundError(path);
     }
 
+    if (debugEnabled) {
+      console.error(
+        `[DEBUG resolvePath] Starting path resolution for: "${path}"`,
+      );
+      console.error(
+        `[DEBUG resolvePath] Root object type:`,
+        typeof obj,
+        `isArray:`,
+        Array.isArray(obj),
+      );
+    }
+
     // Handle simple property access (no dots or brackets)
     if (!path.includes(".") && !path.includes("[")) {
-      return this.getProperty(obj, path) as VariableValue;
+      const result = this.getProperty(obj, path) as VariableValue;
+      if (debugEnabled) {
+        console.error(
+          `[DEBUG resolvePath] Simple property "${path}" result:`,
+          result,
+        );
+        console.error(
+          `[DEBUG resolvePath] Result type: ${typeof result}, isArray: ${
+            Array.isArray(result)
+          }`,
+        );
+      }
+      return result;
     }
 
     // Parse path segments
     const segments = this.parsePath(path);
+    if (debugEnabled) {
+      console.error(
+        `[DEBUG resolvePath] Path segments for "${path}":`,
+        segments,
+      );
+    }
+
     let current: unknown = obj;
 
     for (const segment of segments) {
       try {
         current = this.getProperty(current, segment);
+        if (debugEnabled) {
+          console.error(`[DEBUG resolvePath] After segment "${segment}":`, {
+            value: current,
+            type: typeof current,
+            isArray: Array.isArray(current),
+          });
+        }
         // Don't check for undefined here, as it could be a valid array element value
       } catch (error) {
         if (error instanceof VariableNotFoundError) {
@@ -54,6 +94,15 @@ export class VariableResolver {
         }
         throw error;
       }
+    }
+
+    if (debugEnabled) {
+      console.error(`[DEBUG resolvePath] Final result for "${path}":`, current);
+      console.error(
+        `[DEBUG resolvePath] Final type: ${typeof current}, isArray: ${
+          Array.isArray(current)
+        }`,
+      );
     }
 
     return current as VariableValue;

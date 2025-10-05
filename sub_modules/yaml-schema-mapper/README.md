@@ -7,14 +7,17 @@ schema-compliant data structures.
 
 - **Property Name Mapping**: Maps property names using exact match,
   case-insensitive, heuristics, and custom `x-map-from` directives
-- **Type Transformation**: Automatic type coercion (array ↔ single value, string
-  → number/boolean, etc.)
-- **Schema Validation**: Validates against JSON Schema constraints (required,
-  enum, pattern, min/max, etc.)
-- **Warning System**: Provides detailed warnings for non-fatal transformations
+- **Type Coercion**: Safe type conversions with ambiguous value preservation
+  (see [Type Coercion Policy](./docs/type-coercion-policy.md))
+- **Warning System**: Detailed warnings for all transformations and preserved
+  values
 - **Union Type Support**: Handles multiple type possibilities
 - **Nested Object Handling**: Recursively processes nested objects and arrays
 - **Zero Dependencies**: Completely standalone, no parent project dependencies
+
+**Note**: This mapper focuses on **data transformation**, not strict validation.
+For validation requirements, use application-level checks or future schema
+directives.
 
 ## Installation
 
@@ -86,8 +89,11 @@ const result = mapDataToSchema({
 
 ### Type Coercion
 
+The mapper applies **safe type conversions** by default while **preserving
+ambiguous values**:
+
 ```typescript
-// Array to single value
+// Single-element array unwrapping (safe)
 const result1 = mapDataToSchema({
   schema: {
     properties: {
@@ -99,7 +105,7 @@ const result1 = mapDataToSchema({
   },
 });
 
-// String to number
+// String to number parsing (safe)
 const result2 = mapDataToSchema({
   schema: {
     properties: {
@@ -111,7 +117,7 @@ const result2 = mapDataToSchema({
   },
 });
 
-// Extended boolean parsing
+// Boolean string parsing (safe - "true"/"false" only)
 const result3 = mapDataToSchema({
   schema: {
     properties: {
@@ -119,10 +125,37 @@ const result3 = mapDataToSchema({
     },
   },
   data: {
-    active: "yes", // Coerced to: true
+    active: "true", // Coerced to: true
+  },
+});
+
+// Multi-element array preservation (ambiguous)
+const result4 = mapDataToSchema({
+  schema: {
+    properties: {
+      value: { type: "boolean" },
+    },
+  },
+  data: {
+    value: [true, false], // Preserved as-is with warning
+  },
+});
+
+// Invalid string preservation (cannot parse)
+const result5 = mapDataToSchema({
+  schema: {
+    properties: {
+      count: { type: "integer" },
+    },
+  },
+  data: {
+    count: "abc123", // Preserved as-is with warning
   },
 });
 ```
+
+**See [Type Coercion Policy](./docs/type-coercion-policy.md) for detailed
+conversion rules and configuration options.**
 
 ### Fallback Mapping
 
@@ -202,13 +235,23 @@ const result = mapDataToSchema({
 ```typescript
 interface MapperOptions {
   strict?: boolean; // Reject additional properties (default: false)
-  validateTypes?: boolean; // Validate types against schema (default: true)
-  coerceTypes?: boolean; // Apply type coercion (default: true)
+  coerceTypes?: boolean; // Apply safe type coercion (default: true)
+
+  // Type coercion policy (see docs/type-coercion-policy.md)
+  allowSafeConversions?: boolean; // Safe conversions (default: true)
+  allowSemanticConversions?: boolean; // Semantic conversions (default: false)
+  semanticConversionRules?: string[]; // Whitelist for semantic conversions
+  invalidConversionAction?: "preserve" | "error" | "fallback"; // Default: "preserve"
+
   maxDepth?: number; // Maximum nesting depth (default: 20)
-  warnOnDataLoss?: boolean; // Warn on data loss transformations (default: true)
+  warnOnCoercion?: boolean; // Warn on type coercions (default: true)
+  logLevel?: "debug" | "warn" | "error" | "silent"; // Default: "warn"
   unicodeNormalization?: "NFC" | "NFD" | "none"; // Unicode normalization (default: "none")
 }
 ```
+
+**See [Type Coercion Policy](./docs/type-coercion-policy.md) for detailed
+configuration examples and conversion rules.**
 
 ## Warning System
 
