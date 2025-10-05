@@ -1,0 +1,13 @@
+{
+  "c1": "build",
+  "c2": "robust",
+  "c3": "code",
+  "title": "Robust Code Construction",
+  "description": "Constructs robust code based on DDD principles",
+  "usage": "climpt-build robust code -f requirements.md",
+  "options": {
+    "file": true,
+    "stdin": true,
+    "destination": true
+  }
+}

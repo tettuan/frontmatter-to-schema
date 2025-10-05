@@ -209,6 +209,54 @@ try {
 }
 ```
 
+## Optional Variables
+
+The processor supports **optional variables** - variables that may not exist in
+the data:
+
+### Behavior
+
+When a variable is not found:
+
+1. **Warning is logged** to stderr (only when `VERBOSE=true`/`1` or
+   `LOG_LEVEL=debug`)
+2. **Processing continues** (no exception thrown)
+3. **Empty string** is substituted
+
+### Example
+
+```typescript
+const data = {
+  name: "App",
+  // version is missing
+};
+
+// Template with optional variable
+const template = {
+  "appName": "{name}",
+  "appVersion": "{version}", // This doesn't exist
+};
+
+// Result (without VERBOSE/LOG_LEVEL=debug - no warning):
+// return: { "appName": "App", "appVersion": "" }
+
+// Result (with VERBOSE=true or LOG_LEVEL=debug):
+// stderr: [json-template WARNING] Variable not found: version
+// return: { "appName": "App", "appVersion": "" }
+```
+
+### Environment Variables
+
+- `VERBOSE=true` or `VERBOSE=1`: Enable warning output
+- `LOG_LEVEL=debug`: Enable warning output
+
+### Benefits
+
+- **Partial data support**: Works even when not all properties are available
+- **Flexible development**: Template and data don't need perfect sync
+- **Better debugging**: See warnings (when enabled) while still getting results
+- **Backward compatible**: Existing complete data works as before
+
 ## Limitations
 
 - **No Array Expansion**: `{@items}` syntax is not supported

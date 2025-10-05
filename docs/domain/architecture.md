@@ -62,7 +62,7 @@ class SchemaProcessor implements Totality<SchemaCore> {
 ```typescript
 interface FrontmatterCore {
   readonly extracted: RawFrontmatter;
-  readonly transformed: SchemaCompliantData;  // ← ★ ADDED
+  readonly transformed: SchemaCompliantData; // ← ★ ADDED
   readonly parsed: ParsedData;
   readonly validated: ValidatedData;
 }
@@ -70,10 +70,10 @@ interface FrontmatterCore {
 class FrontmatterProcessor implements Totality<FrontmatterCore> {
   process(
     markdown: MarkdownContent,
-    schema: SchemaDefinition,  // ← ★ ADDED
+    schema: SchemaDefinition, // ← ★ ADDED
   ): Result<FrontmatterCore, FrontmatterError> {
     return this.extract(markdown)
-      .chain((raw) => this.transformToSchema(raw, schema))  // ← ★ ADDED
+      .chain((raw) => this.transformToSchema(raw, schema)) // ← ★ ADDED
       .chain(this.parse)
       .chain(this.validate);
   }
