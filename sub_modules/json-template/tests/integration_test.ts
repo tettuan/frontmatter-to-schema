@@ -2,9 +2,7 @@
  * Integration tests for the entire JSON template processing system
  */
 
-import {
-  assertEquals,
-} from "https://deno.land/std@0.208.0/assert/mod.ts";
+import { assertEquals } from "https://deno.land/std@0.208.0/assert/mod.ts";
 import { createTemplateProcessor } from "../src/mod.ts";
 
 // Helper to create temporary test files
@@ -201,10 +199,10 @@ Deno.test("Integration - Real-world registry template", async () => {
   }
 });
 
-Deno.test("Integration - Optional variable handling with warning", async () => {
+Deno.test("Integration - Optional variable handling with missing variables", async () => {
   const template = `{
     "valid": "{existing.value}",
-    "optional": "{missing.deeply.nested.value}"
+    "missing": "{missing.deeply.nested.value}"
   }`;
 
   const data = {
@@ -215,14 +213,14 @@ Deno.test("Integration - Optional variable handling with warning", async () => {
 
   try {
     const processor = createTemplateProcessor();
+    const result = await processor.process(data, tempFile) as Record<
+      string,
+      unknown
+    >;
 
-    // Should now succeed with warning logged and empty string for missing variable
-    const result = await processor.process(data, tempFile);
-
-    assertEquals(result, {
-      valid: "test",
-      optional: "", // Missing variable replaced with empty string
-    });
+    // Missing variables should be replaced with empty string
+    assertEquals(result.valid, "test");
+    assertEquals(result.missing, "");
   } finally {
     await cleanup(tempFile);
   }

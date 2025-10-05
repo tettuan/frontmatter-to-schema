@@ -69,12 +69,19 @@ export class JsonTemplateProcessorImpl implements JsonTemplateProcessor {
         return this.formatValue(value);
       } catch (error) {
         if (error instanceof VariableNotFoundError) {
-          // Log warning to stderr but continue processing
-          console.error(
-            `[json-template WARNING] Variable not found: ${trimmedPath}`,
-          );
-          if (templatePath) {
-            console.error(`  Template: ${templatePath}`);
+          // Log warning only if VERBOSE=true/1 or LOG_LEVEL=debug
+          const verbose = Deno.env.get("VERBOSE") === "true" ||
+            Deno.env.get("VERBOSE") === "1";
+          const logLevel = Deno.env.get("LOG_LEVEL");
+          const shouldLog = verbose || logLevel === "debug";
+
+          if (shouldLog) {
+            console.error(
+              `[json-template WARNING] Variable not found: ${trimmedPath}`,
+            );
+            if (templatePath) {
+              console.error(`  Template: ${templatePath}`);
+            }
           }
 
           // Return empty string (will be quoted as "")

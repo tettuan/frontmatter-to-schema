@@ -33,10 +33,10 @@ frontmatter-to-schema project.
 
 The system uses three independent sub-modules for processing:
 
-- **[yaml-schema-mapper](../../sub_modules/yaml-schema-mapper/README.md)**:
-  Raw YAML → Schema-compliant data transformation (Stage 0)
-- **[data-path-resolver](../../sub_modules/data-path-resolver/README.md)**:
-  Path expression resolution for x-derived-from (Stage 4)
+- **[yaml-schema-mapper](../../sub_modules/yaml-schema-mapper/README.md)**: Raw
+  YAML → Schema-compliant data transformation (Stage 0)
+- **[data-path-resolver](../../sub_modules/data-path-resolver/README.md)**: Path
+  expression resolution for x-derived-from (Stage 4)
 - **[json-template](../../sub_modules/json-template/README.md)**: Template
   variable substitution (Stage 7)
 

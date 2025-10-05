@@ -8,7 +8,7 @@
 
 ### 1. 値オブジェクト
 
-```typescript
+````typescript
 import { Result, ValidationError } from "../shared/types";
 
 /**
@@ -320,7 +320,7 @@ export class ValidatedFrontmatter {
     return this.sourcePath;
   }
 }
-```
+````
 
 ### 2. エンティティ
 

@@ -18,8 +18,9 @@ Schema処理は以下の2つのレイヤーで構成される：
 
 **モジュール**: `sub_modules/yaml-schema-mapper/`
 
-**重要**: Layer 0 は Schema ドメインではなく Frontmatter ドメインで実行されるが、
-Schema定義を参照するため Schema ドメインの概念的な一部として扱う。
+**重要**: Layer 0 は Schema ドメインではなく Frontmatter
+ドメインで実行されるが、 Schema定義を参照するため Schema
+ドメインの概念的な一部として扱う。
 
 ### Layer 1: ディレクティブ処理
 
@@ -55,11 +56,11 @@ Schemaに加えて、アプリケーション固有の機能を提供する。
   "properties": {
     "input_file": {
       "type": "boolean",
-      "x-map-from": "file"  // "file" → "input_file" へマッピング
+      "x-map-from": "file" // "file" → "input_file" へマッピング
     },
     "displayName": {
       "type": "string",
-      "x-map-from": ["fullName", "name", "userName"]  // フォールバック
+      "x-map-from": ["fullName", "name", "userName"] // フォールバック
     }
   }
 }

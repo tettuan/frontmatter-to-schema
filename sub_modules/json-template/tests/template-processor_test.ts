@@ -7,10 +7,7 @@ import {
   assertRejects,
 } from "https://deno.land/std@0.208.0/assert/mod.ts";
 import { JsonTemplateProcessorImpl } from "../src/template-processor.ts";
-import {
-  InvalidJsonError,
-  TemplateNotFoundError,
-} from "../src/errors.ts";
+import { InvalidJsonError, TemplateNotFoundError } from "../src/errors.ts";
 
 // Helper to create temporary test files
 async function createTempFile(content: string): Promise<string> {
@@ -186,7 +183,7 @@ Deno.test("JsonTemplateProcessorImpl - throws TemplateNotFoundError for missing 
   );
 });
 
-Deno.test("JsonTemplateProcessorImpl - handles missing variables with empty string", async () => {
+Deno.test("JsonTemplateProcessorImpl - handles missing variables with empty string (optional variables)", async () => {
   const template = '{"value": "{missing.variable}", "existing": "{existing}"}';
   const data = { existing: "value" };
 
@@ -195,7 +192,7 @@ Deno.test("JsonTemplateProcessorImpl - handles missing variables with empty stri
   try {
     const processor = new JsonTemplateProcessorImpl();
 
-    // Should NOT throw, instead returns empty string for missing variable
+    // Should NOT throw - missing variables are replaced with empty string
     const result = await processor.process(data, tempFile);
 
     assertEquals(result, {
@@ -316,7 +313,7 @@ Deno.test("JsonTemplateProcessorImpl - property name mismatch handling with opti
   const dataWithFile = {
     options: {
       input: ["value"],
-      file: true,  // Property name is "file", not "input_file"
+      file: true, // Property name is "file", not "input_file"
     },
   };
 
@@ -324,7 +321,7 @@ Deno.test("JsonTemplateProcessorImpl - property name mismatch handling with opti
   const dataWithInputFile = {
     options: {
       input: ["value"],
-      input_file: true,  // Correct property name
+      input_file: true, // Correct property name
     },
   };
 
