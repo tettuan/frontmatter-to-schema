@@ -190,3 +190,8 @@ echo ""
 echo "Example:"
 echo "  ${BINARY_NAME} ./docs --schema=schema.json --template=template.json --destination=./output"
 echo ""
+
+# Display installed version
+echo "📌 Installed version:"
+${BINARY_NAME} -v 2>/dev/null || echo "  (version check failed)"
+echo ""
