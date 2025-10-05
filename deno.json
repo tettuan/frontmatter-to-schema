@@ -15,7 +15,9 @@
     ]
   },
   "lint": {
-    "exclude": ["tests/integration/process-documents.orchestrator.test.ts"],
+    "exclude": [
+      "tmp/**/*"
+    ],
     "rules": {
       "tags": ["recommended"],
       "exclude": ["no-explicit-any"]
@@ -25,7 +27,8 @@
     "exclude": [
       "examples/**/template.yml",
       "examples/**/item_template.yml",
-      ".agent/**/*template*.yml"
+      ".agent/**/*template*.yml",
+      "tmp/**/*"
     ]
   },
   "test": {

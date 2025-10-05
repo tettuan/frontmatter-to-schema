@@ -93,23 +93,59 @@ export class JsonTemplateProcessorImpl implements JsonTemplateProcessor {
   }
 
   private formatValue(value: unknown): string {
+    // DEBUG: Log value type and content
+    const debugEnabled = Deno.env.get("DEBUG_TEMPLATE") === "true";
+    if (debugEnabled) {
+      console.error(`[DEBUG formatValue] Input value:`, value);
+      console.error(
+        `[DEBUG formatValue] Type: ${typeof value}, IsArray: ${
+          Array.isArray(value)
+        }`,
+      );
+    }
+
     if (value === null) {
+      if (debugEnabled) console.error(`[DEBUG formatValue] Returning: "null"`);
       return "null";
     }
 
     if (value === undefined) {
+      if (debugEnabled) {
+        console.error(`[DEBUG formatValue] Returning: "null" (from undefined)`);
+      }
       return "null";
     }
 
     if (typeof value === "string") {
+      if (debugEnabled) {
+        console.error(
+          `[DEBUG formatValue] Returning: JSON.stringify(string) = ${
+            JSON.stringify(value)
+          }`,
+        );
+      }
       return JSON.stringify(value);
     }
 
     if (typeof value === "number" || typeof value === "boolean") {
+      if (debugEnabled) {
+        console.error(
+          `[DEBUG formatValue] Returning: String(number/boolean) = ${
+            String(value)
+          }`,
+        );
+      }
       return String(value);
     }
 
     if (Array.isArray(value) || (typeof value === "object" && value !== null)) {
+      if (debugEnabled) {
+        console.error(
+          `[DEBUG formatValue] Returning: JSON.stringify(array/object) = ${
+            JSON.stringify(value)
+          }`,
+        );
+      }
       return JSON.stringify(value);
     }
 
