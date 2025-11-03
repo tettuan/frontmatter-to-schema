@@ -16,7 +16,8 @@
   },
   "lint": {
     "exclude": [
-      "tmp/**/*"
+      "tmp/**/*",
+      "sub_modules/**/*"
     ],
     "rules": {
       "tags": ["recommended"],
