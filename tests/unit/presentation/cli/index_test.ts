@@ -211,11 +211,13 @@ describe("CLI", () => {
 
       assertEquals(response.ok, true);
       assertExists(response.data);
-      assertEquals(response.data.schemaPath, "schema.json");
-      assertEquals(response.data.templatePath, "template.json");
-      assertEquals(response.data.inputPath, "input.md");
-      assertEquals(response.data.outputPath, "output.json");
-      assertEquals(response.data.outputFormat, "yaml");
+      assertEquals(response.data.pipelineConfig.schemaPath, "schema.json");
+      assertEquals(response.data.pipelineConfig.templatePath, "template.json");
+      assertEquals(response.data.pipelineConfig.inputPath, "input.md");
+      assertEquals(response.data.pipelineConfig.outputPath, "output.json");
+      assertEquals(response.data.pipelineConfig.outputFormat, "yaml");
+      assertEquals(response.data.translateLang, null);
+      assertEquals(response.data.verbose, false);
     });
 
     it("should use default json format when not specified", () => {
@@ -236,7 +238,7 @@ describe("CLI", () => {
 
       assertEquals(response.ok, true);
       assertExists(response.data);
-      assertEquals(response.data.outputFormat, "json");
+      assertEquals(response.data.pipelineConfig.outputFormat, "json");
     });
   });
 

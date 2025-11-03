@@ -98,13 +98,13 @@ export class CLI {
   }
 
   private async processDirectInvocation(args: string[]): Promise<CLIResponse> {
-    // Direct invocation expects: <schema> <output> <input...> [--verbose]
+    // Direct invocation expects: <schema> <output> <input...> [--verbose] [--translate=<lang>]
     // This order allows shell glob expansion to work correctly
     if (args.length < 3) {
       return {
         ok: false,
         error: new ProcessingError(
-          "Insufficient arguments. Usage: <schema> <output> <input...> [--verbose]",
+          "Insufficient arguments. Usage: <schema> <output> <input...> [--verbose] [--translate=<lang>]",
           "INVALID_ARGUMENTS",
           { args },
         ),
@@ -112,9 +112,38 @@ export class CLI {
     }
 
     // Parse arguments from end to beginning to handle glob expansion
-    const hasVerbose = args[args.length - 1] === "--verbose";
+    let endIndex = args.length;
+    let hasVerbose = false;
+    let translateLang: string | null = null;
+
+    // Parse options from the end
+    while (endIndex > 2) {
+      const arg = args[endIndex - 1];
+
+      if (arg === "--verbose") {
+        hasVerbose = true;
+        endIndex -= 1;
+      } else if (arg.startsWith("--translate=")) {
+        const value = arg.split("=")[1];
+        if (!value || value.trim().length === 0) {
+          return {
+            ok: false,
+            error: new ProcessingError(
+              "--translate requires a language code (e.g., --translate=en)",
+              "INVALID_ARGUMENTS",
+              { args },
+            ),
+          };
+        }
+        translateLang = value;
+        endIndex -= 1;
+      } else {
+        // Not an option, stop parsing
+        break;
+      }
+    }
+
     const options = hasVerbose ? ["--verbose"] : [];
-    const endIndex = hasVerbose ? args.length - 1 : args.length;
 
     const schemaPath = args[0];
     const outputPath = args[1];
@@ -198,6 +227,18 @@ export class CLI {
       );
     }
 
+    // Translate output file if --translate option is specified
+    if (translateLang) {
+      const translateResult = await this.translateOutputFile(
+        pipelineResult.outputPath,
+        translateLang,
+        hasVerbose,
+      );
+      if (!translateResult.ok) {
+        return translateResult;
+      }
+    }
+
     return {
       ok: true,
       data: pipelineResult,
@@ -230,12 +271,19 @@ export class CLI {
   }
 
   private async processCommand(args: string[]): Promise<CLIResponse> {
-    const config = this.parseProcessArgs(args);
-    if (!config.ok) {
-      return config;
+    const parseResult = this.parseProcessArgs(args);
+    if (!parseResult.ok) {
+      return parseResult;
     }
 
-    let pipelineConfig = config.data as PipelineConfig;
+    const { pipelineConfig: initialConfig, translateLang, verbose } =
+      parseResult
+        .data as {
+          pipelineConfig: PipelineConfig;
+          translateLang: string | null;
+          verbose: boolean;
+        };
+    let pipelineConfig = initialConfig;
 
     // Resolve input path to actual files if it's a single string
     // This handles directories and glob patterns
@@ -277,6 +325,18 @@ export class CLI {
       `⏱️  Execution time: ${pipelineResult.executionTime.toFixed(2)}ms`,
     );
 
+    // Translate output file if --translate option is specified
+    if (translateLang) {
+      const translateResult = await this.translateOutputFile(
+        pipelineResult.outputPath,
+        translateLang,
+        verbose,
+      );
+      if (!translateResult.ok) {
+        return translateResult;
+      }
+    }
+
     return {
       ok: true,
       data: pipelineResult,
@@ -288,28 +348,57 @@ export class CLI {
       return {
         ok: false,
         error: new ProcessingError(
-          "Insufficient arguments. Usage: process <schema> <template> <input> <output> [format]",
+          "Insufficient arguments. Usage: process <schema> <template> <input> <output> [format] [--verbose] [--translate=<lang>]",
           "INVALID_ARGUMENTS",
           { args },
         ),
       };
     }
 
-    const [schemaPath, templatePath, inputPath, outputPath, outputFormat] =
-      args;
+    // Parse positional arguments
+    const [schemaPath, templatePath, inputPath, outputPath] = args;
+
+    // Parse remaining arguments for format and options
+    let outputFormat: "json" | "yaml" | "xml" | "markdown" = "json";
+    let translateLang: string | null = null;
+    let verbose = false;
+
+    // Start from index 4 (after required positional args)
+    for (let i = 4; i < args.length; i++) {
+      const arg = args[i];
+
+      if (arg === "--verbose") {
+        verbose = true;
+      } else if (arg.startsWith("--translate=")) {
+        const value = arg.split("=")[1];
+        if (!value || value.trim().length === 0) {
+          return {
+            ok: false,
+            error: new ProcessingError(
+              "--translate requires a language code (e.g., --translate=en)",
+              "INVALID_ARGUMENTS",
+              { args },
+            ),
+          };
+        }
+        translateLang = value;
+      } else if (!arg.startsWith("--") && i === 4) {
+        // Fifth argument is format if it's not an option
+        outputFormat = arg as "json" | "yaml" | "xml" | "markdown";
+      }
+    }
 
     const config: PipelineConfig = {
       schemaPath,
       templatePath,
       inputPath,
       outputPath,
-      outputFormat: (outputFormat as "json" | "yaml" | "xml" | "markdown") ||
-        "json",
+      outputFormat,
     };
 
     return {
       ok: true,
-      data: config,
+      data: { pipelineConfig: config, translateLang, verbose },
     };
   }
 
@@ -319,10 +408,10 @@ Frontmatter to Schema Processor
 
 USAGE:
     frontmatter-to-schema <COMMAND> [OPTIONS]
-    frontmatter-to-schema <schema> <input> <output> [--verbose]
+    frontmatter-to-schema <schema> <input> <output> [OPTIONS]
 
 COMMANDS:
-    process <schema> <template> <input> <output> [format]
+    process <schema> <template> <input> <output> [format] [OPTIONS]
         Process markdown files with explicit schema and template
 
         Arguments:
@@ -332,6 +421,10 @@ COMMANDS:
             output      Path for output file
             format      Output format: json or yaml (default: json)
 
+        Options:
+            --verbose            Show processing details
+            --translate=<lang>   Translate output to specified language (requires Claude Code)
+
     help, --help, -h
         Show this help message
 
@@ -340,16 +433,30 @@ COMMANDS:
 
 DIRECT INVOCATION:
     When schema contains x-template directive:
-        <schema> <output> <input...> [--verbose]
+        <schema> <output> <input...> [OPTIONS]
 
         Arguments:
             schema      Path to JSON schema with x-template
             output      Path for output file
             input...    Path(s) to markdown file(s) or directory or glob pattern
-            --verbose   Show processing details
+
+        Options:
+            --verbose            Show processing details
+            --translate=<lang>   Translate output to specified language (requires Claude Code)
+                                Supported languages: en, ja, zh, ko, es, fr, de
 
         Note: Input is specified AFTER output to allow shell glob expansion.
               The shell will expand patterns like *.md before passing to CLI.
+
+TRANSLATION:
+    The --translate option uses Claude Code's 'claude -p' command to translate
+    the output file after processing. This is useful for converting Japanese
+    frontmatter to English for better searchability and universality.
+
+    Requirements:
+        - Claude Code must be installed and available in PATH
+        - Translation happens after processing completes
+        - The output file is updated in-place with translated content
 
 EXAMPLES:
     # Process with explicit template
@@ -358,14 +465,17 @@ EXAMPLES:
     # Direct invocation (schema has x-template) - single file
     frontmatter-to-schema schema.json output.json article.md --verbose
 
+    # Direct invocation with translation to English
+    frontmatter-to-schema schema.json output.json article.md --verbose --translate=en
+
     # Direct invocation with glob pattern (shell expands *.md)
     frontmatter-to-schema schema.json output.json *.md --verbose
 
-    # Direct invocation with directory
-    frontmatter-to-schema schema.json output.json ./docs/ --verbose
+    # Direct invocation with directory and translation
+    frontmatter-to-schema schema.json output.json ./docs/ --translate=en
 
-    # Process directory with YAML output
-    frontmatter-to-schema process schema.json template.json ./docs/ output.yaml yaml
+    # Process directory with YAML output and translation
+    frontmatter-to-schema process schema.json template.json ./docs/ output.yaml yaml --translate=en
 
     # Show help
     frontmatter-to-schema help
@@ -381,5 +491,145 @@ EXAMPLES:
 
     console.log(versionInfo);
     return { ok: true, data: version };
+  }
+
+  /**
+   * Translates the output file using claude -p command.
+   * This requires Claude Code to be available in the environment.
+   *
+   * @param outputPath - Path to the output file to translate
+   * @param targetLang - Target language code (e.g., "en")
+   * @param verbose - Whether to show verbose output
+   */
+  private async translateOutputFile(
+    outputPath: string,
+    targetLang: string,
+    verbose: boolean,
+  ): Promise<CLIResponse> {
+    try {
+      if (verbose) {
+        console.log(`🌐 Translating output to ${targetLang}...`);
+      }
+
+      // Convert to absolute path for Claude Code
+      const absolutePath = isAbsolute(outputPath)
+        ? outputPath
+        : join(Deno.cwd(), outputPath);
+
+      // Prepare translation prompt with file path reference
+      const translationPrompt = this.getTranslationPrompt(
+        targetLang,
+        absolutePath,
+      );
+
+      // Execute claude -p command with prompt and file path
+      // Claude Code will read the file directly and process it
+      const command = new Deno.Command("claude", {
+        args: ["-p", translationPrompt, absolutePath],
+        stdout: "piped",
+        stderr: "piped",
+      });
+
+      const process = await command.output();
+
+      if (!process.success) {
+        const errorOutput = new TextDecoder().decode(process.stderr);
+        return {
+          ok: false,
+          error: new ProcessingError(
+            `Translation failed: ${errorOutput}`,
+            "TRANSLATION_ERROR",
+            { outputPath, targetLang },
+          ),
+        };
+      }
+
+      // Get translated content
+      let translatedContent = new TextDecoder().decode(process.stdout);
+
+      if (!translatedContent || translatedContent.trim().length === 0) {
+        return {
+          ok: false,
+          error: new ProcessingError(
+            "Translation produced no output",
+            "TRANSLATION_ERROR",
+            { outputPath, targetLang },
+          ),
+        };
+      }
+
+      // Remove markdown code block markers if present
+      translatedContent = this.cleanTranslatedOutput(translatedContent);
+
+      // Write translated content back to the output file
+      await Deno.writeTextFile(outputPath, translatedContent);
+
+      if (verbose) {
+        console.log(`✅ Translation completed: ${outputPath}`);
+      }
+
+      return { ok: true };
+    } catch (error) {
+      const errorMessage = error instanceof Error
+        ? error.message
+        : "Unknown error";
+      return {
+        ok: false,
+        error: new ProcessingError(
+          `Translation failed: ${errorMessage}`,
+          "TRANSLATION_ERROR",
+          { outputPath, targetLang, error },
+        ),
+      };
+    }
+  }
+
+  /**
+   * Cleans translated output by removing markdown code block markers if present.
+   * When using file path with Claude Code, output is usually clean,
+   * but this provides a safety net for edge cases.
+   */
+  private cleanTranslatedOutput(content: string): string {
+    let cleaned = content.trim();
+
+    // Remove markdown code block markers if present
+    cleaned = cleaned.replace(/^```(?:json|yaml)?\s*\n?/i, "");
+    cleaned = cleaned.replace(/\n?```\s*$/i, "");
+
+    return cleaned.trim();
+  }
+
+  /**
+   * Generates the translation prompt for the given target language.
+   * @param targetLang - Target language code (e.g., "en")
+   * @param filePath - Absolute path to the file to translate
+   */
+  private getTranslationPrompt(targetLang: string, filePath: string): string {
+    const langNames: Record<string, string> = {
+      "en": "English",
+      "ja": "Japanese",
+      "zh": "Chinese",
+      "ko": "Korean",
+      "es": "Spanish",
+      "fr": "French",
+      "de": "German",
+    };
+
+    const targetLangName = langNames[targetLang] || targetLang;
+
+    return `Read the file at: ${filePath}
+
+Translate all text content in this JSON/YAML file to ${targetLangName}.
+
+IMPORTANT INSTRUCTIONS:
+- Preserve the exact JSON/YAML structure and formatting
+- Only translate human-readable text values (strings)
+- Do NOT translate: keys, technical identifiers, URLs, file paths, or code snippets
+- Maintain all special characters and escape sequences
+- Return ONLY the translated JSON/YAML content
+- Do NOT add any commentary, explanations, or markdown formatting
+- Ensure the output is valid, parseable JSON/YAML
+
+Output the translated content directly without any preamble or postamble.`;
   }
 }
