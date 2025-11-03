@@ -834,3 +834,212 @@ category: "backend"
 
   await cleanupE2EEnvironment();
 });
+
+/**
+ * Helper function to check if claude command is available
+ */
+async function isClaudeCommandAvailable(): Promise<boolean> {
+  try {
+    const command = new Deno.Command("which", {
+      args: ["claude"],
+      stdout: "null",
+      stderr: "null",
+    });
+    const result = await command.output();
+    return result.success;
+  } catch {
+    return false;
+  }
+}
+
+Deno.test(
+  "CLI E2E - translation feature with --translate option",
+  async () => {
+    // Check if claude command is available
+    const claudeAvailable = await isClaudeCommandAvailable();
+    if (!claudeAvailable) {
+      console.log(
+        "⏭️  Skipping translation test: claude command not available",
+      );
+      return;
+    }
+
+    await setupE2EEnvironment();
+
+    // Create schema with x-template for direct invocation
+    const translationSchema = {
+      type: "object",
+      properties: {
+        title: { type: "string" },
+        description: { type: "string" },
+      },
+      "x-template": "translation-template.json",
+    };
+
+    const schemaPath = join(TEST_FIXTURES_DIR, "translation-schema.json");
+    await Deno.writeTextFile(
+      schemaPath,
+      JSON.stringify(translationSchema, null, 2),
+    );
+
+    // Create simple template
+    const translationTemplate = {
+      title: "${title}",
+      description: "${description}",
+    };
+
+    await Deno.writeTextFile(
+      join(TEST_FIXTURES_DIR, "translation-template.json"),
+      JSON.stringify(translationTemplate, null, 2),
+    );
+
+    // Create a markdown file with Japanese content
+    const japaneseDoc = `---
+title: 日本語のタイトル
+description: これは日本語の説明文です。
+---
+# 日本語の記事`;
+
+    const japaneseDocPath = join(TEST_FIXTURES_DIR, "japanese-doc.md");
+    await Deno.writeTextFile(japaneseDocPath, japaneseDoc);
+
+    const cli = CLI.create();
+    assertEquals(cli.ok, true);
+    const cliInstance = cli.data!;
+
+    const outputPath = join(TEST_DIR, "translated-output.json");
+
+    // Test translation with --translate=en option
+    const result = await cliInstance.run([
+      schemaPath,
+      outputPath,
+      japaneseDocPath,
+      "--verbose",
+      "--translate=en",
+    ]);
+
+    assertEquals(result.ok, true, "Translation should complete successfully");
+
+    if (result.ok) {
+      const outputContent = await Deno.readTextFile(outputPath);
+      const outputJson = JSON.parse(outputContent);
+
+      // Verify that the content is translated (not in Japanese)
+      assertExists(outputJson.title, "Title should exist");
+      assertExists(outputJson.description, "Description should exist");
+
+      // Basic check: translated content should not contain Japanese characters
+      const hasJapanese = /[\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FAF]/.test(
+        outputJson.title + outputJson.description,
+      );
+      assertEquals(
+        hasJapanese,
+        false,
+        "Translated content should not contain Japanese characters",
+      );
+    }
+
+    await cleanupE2EEnvironment();
+  },
+);
+
+Deno.test(
+  "CLI E2E - translation with process command",
+  async () => {
+    // Check if claude command is available
+    const claudeAvailable = await isClaudeCommandAvailable();
+    if (!claudeAvailable) {
+      console.log(
+        "⏭️  Skipping translation test: claude command not available",
+      );
+      return;
+    }
+
+    await setupE2EEnvironment();
+
+    // Create simple schema and template for process command
+    const processSchema = {
+      type: "object",
+      properties: {
+        title: { type: "string" },
+        author: { type: "string" },
+      },
+    };
+
+    const schemaPath = join(
+      TEST_FIXTURES_DIR,
+      "process-translation-schema.json",
+    );
+    await Deno.writeTextFile(
+      schemaPath,
+      JSON.stringify(processSchema, null, 2),
+    );
+
+    const processTemplate = {
+      title: "${title}",
+      author: "${author}",
+    };
+
+    const templatePath = join(
+      TEST_FIXTURES_DIR,
+      "process-translation-template.json",
+    );
+    await Deno.writeTextFile(
+      templatePath,
+      JSON.stringify(processTemplate, null, 2),
+    );
+
+    // Create a markdown file with Japanese content
+    const japaneseDoc = `---
+title: テストタイトル
+author: テスト著者
+---
+# テスト記事`;
+
+    const japaneseDocPath = join(TEST_FIXTURES_DIR, "japanese-process-doc.md");
+    await Deno.writeTextFile(japaneseDocPath, japaneseDoc);
+
+    const cli = CLI.create();
+    assertEquals(cli.ok, true);
+    const cliInstance = cli.data!;
+
+    const outputPath = join(TEST_DIR, "translated-process-output.json");
+
+    // Test translation with process command
+    const result = await cliInstance.run([
+      "process",
+      schemaPath,
+      templatePath,
+      japaneseDocPath,
+      outputPath,
+      "--translate=en",
+    ]);
+
+    assertEquals(
+      result.ok,
+      true,
+      "Translation with process command should succeed",
+    );
+
+    if (result.ok) {
+      const outputContent = await Deno.readTextFile(outputPath);
+      const outputJson = JSON.parse(outputContent);
+
+      // Verify that the content is translated
+      assertExists(outputJson.title, "Title should exist");
+      assertExists(outputJson.author, "Author should exist");
+
+      // Check that Japanese characters are not present
+      const hasJapanese = /[\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FAF]/.test(
+        outputJson.title + outputJson.author,
+      );
+      assertEquals(
+        hasJapanese,
+        false,
+        "Translated content should not contain Japanese characters",
+      );
+    }
+
+    await cleanupE2EEnvironment();
+  },
+);
