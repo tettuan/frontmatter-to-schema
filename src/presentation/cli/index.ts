@@ -516,16 +516,23 @@ EXAMPLES:
         ? outputPath
         : join(Deno.cwd(), outputPath);
 
-      // Prepare translation prompt with file path reference
+      // Prepare translation prompt - simple and direct like the successful example
       const translationPrompt = this.getTranslationPrompt(
         targetLang,
         absolutePath,
       );
 
-      // Execute claude -p command with prompt and file path
-      // Claude Code will read the file directly and process it
+      // Execute claude command with model, permission mode, and prompt
+      // Using haiku model for faster translation and bypass permissions for direct file access
       const command = new Deno.Command("claude", {
-        args: ["-p", translationPrompt, absolutePath],
+        args: [
+          "--model",
+          "haiku",
+          "--permission-mode",
+          "bypassPermissions",
+          "-p",
+          translationPrompt,
+        ],
         stdout: "piped",
         stderr: "piped",
       });
@@ -543,26 +550,6 @@ EXAMPLES:
           ),
         };
       }
-
-      // Get translated content
-      let translatedContent = new TextDecoder().decode(process.stdout);
-
-      if (!translatedContent || translatedContent.trim().length === 0) {
-        return {
-          ok: false,
-          error: new ProcessingError(
-            "Translation produced no output",
-            "TRANSLATION_ERROR",
-            { outputPath, targetLang },
-          ),
-        };
-      }
-
-      // Remove markdown code block markers if present
-      translatedContent = this.cleanTranslatedOutput(translatedContent);
-
-      // Write translated content back to the output file
-      await Deno.writeTextFile(outputPath, translatedContent);
 
       if (verbose) {
         console.log(`✅ Translation completed: ${outputPath}`);
@@ -585,22 +572,8 @@ EXAMPLES:
   }
 
   /**
-   * Cleans translated output by removing markdown code block markers if present.
-   * When using file path with Claude Code, output is usually clean,
-   * but this provides a safety net for edge cases.
-   */
-  private cleanTranslatedOutput(content: string): string {
-    let cleaned = content.trim();
-
-    // Remove markdown code block markers if present
-    cleaned = cleaned.replace(/^```(?:json|yaml)?\s*\n?/i, "");
-    cleaned = cleaned.replace(/\n?```\s*$/i, "");
-
-    return cleaned.trim();
-  }
-
-  /**
    * Generates the translation prompt for the given target language.
+   * Uses a simple, direct prompt style similar to the successful example.
    * @param targetLang - Target language code (e.g., "en")
    * @param filePath - Absolute path to the file to translate
    */
@@ -617,19 +590,20 @@ EXAMPLES:
 
     const targetLangName = langNames[targetLang] || targetLang;
 
-    return `Read the file at: ${filePath}
+    // Simple, direct prompt that preserves structure exactly
+    // Similar to successful example: "translate to English and overwrite it: file.json"
+    return `Translate to ${targetLangName} and overwrite it: ${filePath}
 
-Translate all text content in this JSON/YAML file to ${targetLangName}.
+CRITICAL RULES:
+1. Keep the EXACT same structure - do not add, remove, or reorganize any elements
+2. Keep ALL keys, field names, and property names unchanged
+3. Only translate the VALUES of text fields (descriptions, titles, instructions)
+4. Preserve all formatting, indentation, and special characters exactly
+5. Do not modify any technical identifiers, URLs, file paths, or code snippets
+6. Output must be valid, parseable ${
+      filePath.endsWith(".json") ? "JSON" : "YAML"
+    }
 
-IMPORTANT INSTRUCTIONS:
-- Preserve the exact JSON/YAML structure and formatting
-- Only translate human-readable text values (strings)
-- Do NOT translate: keys, technical identifiers, URLs, file paths, or code snippets
-- Maintain all special characters and escape sequences
-- Return ONLY the translated JSON/YAML content
-- Do NOT add any commentary, explanations, or markdown formatting
-- Ensure the output is valid, parseable JSON/YAML
-
-Output the translated content directly without any preamble or postamble.`;
+Translate ONLY the human-readable text values to ${targetLangName} while preserving everything else exactly as-is.`;
   }
 }
