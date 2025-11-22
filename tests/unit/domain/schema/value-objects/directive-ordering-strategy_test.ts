@@ -8,21 +8,23 @@ Deno.test("DirectiveOrderingStrategy - create default strategy", () => {
   const strategy = DirectiveOrderingStrategy.createDefault();
   const directives = strategy.getOrderedDirectives();
 
-  assertEquals(directives.length, 8);
+  assertEquals(directives.length, 9);
   assertEquals(directives[0], "x-frontmatter-part");
-  assertEquals(directives[1], "x-flatten-arrays");
-  assertEquals(directives[2], "x-derived-from");
-  assertEquals(directives[3], "x-derived-unique");
-  assertEquals(directives[4], "x-jmespath-filter");
+  assertEquals(directives[1], "x-collect-pattern");
+  assertEquals(directives[2], "x-flatten-arrays");
+  assertEquals(directives[3], "x-derived-from");
+  assertEquals(directives[4], "x-derived-unique");
+  assertEquals(directives[5], "x-jmespath-filter");
 });
 
 Deno.test("DirectiveOrderingStrategy - getPriority returns correct order", () => {
   const strategy = DirectiveOrderingStrategy.createDefault();
 
   assertEquals(strategy.getPriority("x-frontmatter-part"), 0);
-  assertEquals(strategy.getPriority("x-flatten-arrays"), 1);
-  assertEquals(strategy.getPriority("x-derived-from"), 2);
-  assertEquals(strategy.getPriority("x-template"), 7);
+  assertEquals(strategy.getPriority("x-collect-pattern"), 1);
+  assertEquals(strategy.getPriority("x-flatten-arrays"), 2);
+  assertEquals(strategy.getPriority("x-derived-from"), 3);
+  assertEquals(strategy.getPriority("x-template"), 8);
 });
 
 Deno.test("DirectiveOrderingStrategy - shouldProcessBefore works correctly", () => {
@@ -63,6 +65,7 @@ Deno.test("DirectiveOrderingStrategy - createCustom with valid order", () => {
   const customOrder: DirectiveType[] = [
     "x-template",
     "x-frontmatter-part",
+    "x-collect-pattern",
     "x-flatten-arrays",
     "x-derived-from",
     "x-derived-unique",
@@ -95,6 +98,7 @@ Deno.test("DirectiveOrderingStrategy - createCustom rejects missing directives",
 Deno.test("DirectiveOrderingStrategy - createCustom rejects unknown directives", () => {
   const invalidOrder = [
     "x-frontmatter-part",
+    "x-collect-pattern",
     "x-flatten-arrays",
     "x-derived-from",
     "x-derived-unique",
@@ -114,6 +118,7 @@ Deno.test("DirectiveOrderingStrategy - createCustom rejects unknown directives",
 Deno.test("DirectiveOrderingStrategy - createCustom rejects duplicates", () => {
   const duplicateOrder: DirectiveType[] = [
     "x-frontmatter-part",
+    "x-collect-pattern",
     "x-flatten-arrays",
     "x-derived-from",
     "x-derived-unique",
@@ -135,7 +140,8 @@ Deno.test("DirectiveOrderingStrategy - createFrontmatterFirst strategy", () => {
   const directives = strategy.getOrderedDirectives();
 
   assertEquals(directives[0], "x-frontmatter-part");
-  assertEquals(directives[1], "x-flatten-arrays");
+  assertEquals(directives[1], "x-collect-pattern");
+  assertEquals(directives[2], "x-flatten-arrays");
   assertEquals(
     strategy.shouldProcessBefore("x-frontmatter-part", "x-template"),
     true,
@@ -159,8 +165,9 @@ Deno.test("DirectiveOrderingStrategy - getSupportedDirectives returns all types"
   const strategy = DirectiveOrderingStrategy.createDefault();
   const supported = strategy.getSupportedDirectives();
 
-  assertEquals(supported.length, 8);
+  assertEquals(supported.length, 9);
   assertEquals(supported.includes("x-frontmatter-part"), true);
+  assertEquals(supported.includes("x-collect-pattern"), true);
   assertEquals(supported.includes("x-flatten-arrays"), true);
   assertEquals(supported.includes("x-derived-from"), true);
   assertEquals(supported.includes("x-derived-unique"), true);

@@ -5,6 +5,7 @@
 
 export const DIRECTIVE_NAMES = {
   FRONTMATTER_PART: "x-frontmatter-part",
+  COLLECT_PATTERN: "x-collect-pattern",
   FLATTEN_ARRAYS: "x-flatten-arrays",
   DERIVED_FROM: "x-derived-from",
   DERIVED_UNIQUE: "x-derived-unique",
@@ -45,6 +46,7 @@ export function getDirectiveDisplayName(directive: DirectiveName): string {
 export const DIRECTIVE_CATEGORIES = {
   DATA_EXTRACTION: [
     DIRECTIVE_NAMES.FRONTMATTER_PART,
+    DIRECTIVE_NAMES.COLLECT_PATTERN,
   ],
   DATA_TRANSFORMATION: [
     DIRECTIVE_NAMES.FLATTEN_ARRAYS,
@@ -64,6 +66,7 @@ export const DIRECTIVE_CATEGORIES = {
  */
 export const DEFAULT_DIRECTIVE_ORDER: DirectiveName[] = [
   DIRECTIVE_NAMES.FRONTMATTER_PART,
+  DIRECTIVE_NAMES.COLLECT_PATTERN,
   DIRECTIVE_NAMES.FLATTEN_ARRAYS,
   DIRECTIVE_NAMES.DERIVED_FROM,
   DIRECTIVE_NAMES.DERIVED_UNIQUE,

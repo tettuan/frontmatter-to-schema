@@ -18,6 +18,7 @@ import { CircularReferenceError, MapperError } from "./errors.ts";
 import { mapProperty, validatePropertyName } from "./property-mapper.ts";
 import { transformValue } from "./type-transformer.ts";
 import { validateRequired, validateValue } from "./validator.ts";
+import { collectByPattern } from "./pattern-collector.ts";
 
 /**
  * Default mapper options
@@ -308,6 +309,40 @@ function mapObject(
         throw error;
       }
     }
+  }
+
+  // Process x-collect-pattern directives
+  for (const [schemaKey, schemaProperty] of Object.entries(schemaProperties)) {
+    const collectConfig = schemaProperty["x-collect-pattern"];
+    if (!collectConfig) continue;
+
+    const currentPath = path ? `${path}.${schemaKey}` : schemaKey;
+
+    // Check if source has additionalProperties: false
+    const sourceKey = collectConfig.source.split(".")[0];
+    const sourceSchema = schemaProperties[sourceKey];
+    if (sourceSchema && sourceSchema.additionalProperties === false) {
+      warnings.push({
+        code: WarningCode.COLLECT_PATTERN_ADDITIONAL_PROPS_FALSE,
+        message:
+          `Source '${collectConfig.source}' has additionalProperties: false, pattern matching may not work`,
+        path: currentPath,
+        severity: "warning",
+        details: {
+          suggestion: "Set additionalProperties: true on the source object",
+        },
+      });
+    }
+
+    // Collect by pattern
+    const collectResult = collectByPattern(
+      result,
+      collectConfig,
+      currentPath,
+    );
+
+    warnings.push(...collectResult.warnings);
+    result[schemaKey] = collectResult.data;
   }
 
   // Handle additional properties
