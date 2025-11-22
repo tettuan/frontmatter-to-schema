@@ -8,6 +8,15 @@
 /**
  * JSON Schema property definition
  */
+/**
+ * Configuration for x-collect-pattern directive
+ */
+export interface CollectPatternConfig {
+  source: string;
+  pattern: string;
+  format?: "key-value" | "object" | "keys" | "values";
+}
+
 export interface SchemaProperty {
   type?: string | string[];
   items?: SchemaProperty | SchemaProperty[];
@@ -16,6 +25,7 @@ export interface SchemaProperty {
   enum?: unknown[];
   pattern?: string;
   "x-map-from"?: string | string[];
+  "x-collect-pattern"?: CollectPatternConfig;
   additionalProperties?: boolean | SchemaProperty;
   minimum?: number;
   maximum?: number;
@@ -66,6 +76,13 @@ export enum WarningCode {
 
   // Validation
   ADDITIONAL_PROPERTY = "ADDITIONAL_PROPERTY",
+
+  // Collect Pattern
+  COLLECT_PATTERN_SOURCE_NOT_FOUND = "COLLECT_PATTERN_SOURCE_NOT_FOUND",
+  COLLECT_PATTERN_INVALID_REGEX = "COLLECT_PATTERN_INVALID_REGEX",
+  COLLECT_PATTERN_SOURCE_NOT_OBJECT = "COLLECT_PATTERN_SOURCE_NOT_OBJECT",
+  COLLECT_PATTERN_ADDITIONAL_PROPS_FALSE =
+    "COLLECT_PATTERN_ADDITIONAL_PROPS_FALSE",
 }
 
 /**
