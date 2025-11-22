@@ -450,6 +450,54 @@ Schemaで使用可能な`x-*`ディレクティブの完全なリファレンス
 | -------------------- | ------- | ---------------------------------------------- | -------------- |
 | `x-frontmatter-part` | boolean | 各Markdownファイル処理の起点を指定             | 配列プロパティ |
 | `x-flatten-arrays`   | string  | 指定プロパティの配列をフラット化（オプション） | 配列プロパティ |
+| `x-collect-pattern`  | object  | 正規表現パターンにマッチするプロパティを収集   | 配列プロパティ |
+
+#### `x-collect-pattern` ディレクティブ
+
+動的なプロパティ名（`uv-*`等のワイルドカードパターン）をkey-value配列として収集する。
+
+**パラメータ**:
+
+| パラメータ | 型     | 必須 | 説明                                   |
+| ---------- | ------ | ---- | -------------------------------------- |
+| `source`   | string | Yes  | 収集対象オブジェクトへのパス（ドット記法） |
+| `pattern`  | string | Yes  | 正規表現パターン（ECMAScript）         |
+
+**使用例**:
+
+```json
+{
+  "user_variables": {
+    "type": "array",
+    "x-collect-pattern": {
+      "source": "options",
+      "pattern": "^uv-.*$"
+    },
+    "items": {
+      "type": "object",
+      "properties": {
+        "key": { "type": "string" },
+        "value": { "type": "string" }
+      }
+    }
+  }
+}
+```
+
+**収集結果**:
+
+```json
+[
+  { "key": "uv-scope", "value": "domain architecture" },
+  { "key": "uv-date", "value": "2025-06-08" }
+]
+```
+
+**処理タイミング**: yaml-schema-mapper処理時（フロントマター抽出と同タイミング）
+
+**前提条件**: 収集元オブジェクトに`additionalProperties: true`が必要
+
+**詳細仕様**: [x-collect-pattern-specification.md](./architecture/x-collect-pattern-specification.md)
 
 **重要な制約事項**:
 
