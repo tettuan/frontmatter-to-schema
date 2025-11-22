@@ -450,6 +450,65 @@ dual-template rendering with `x-frontmatter-part`.
 }
 ```
 
+### x-collect-pattern
+
+Dynamically collects properties from a source object based on regex pattern
+matching. Useful for extracting user-defined variables or configuration values.
+
+```json
+{
+  "options": {
+    "type": "object",
+    "additionalProperties": true
+  },
+  "user_variables": {
+    "type": "array",
+    "x-collect-pattern": {
+      "source": "options",
+      "pattern": "^uv-.*$"
+    }
+  }
+}
+```
+
+**Input data:**
+
+```yaml
+options:
+  input: ["default"]
+  destination: true
+  uv-scope: "domain architecture"
+  uv-date: "2025-06-08"
+  uv-author: "John"
+```
+
+**Output:**
+
+```json
+{
+  "user_variables": [
+    { "key": "uv-author", "value": "John" },
+    { "key": "uv-date", "value": "2025-06-08" },
+    { "key": "uv-scope", "value": "domain architecture" }
+  ]
+}
+```
+
+**Configuration options:**
+
+| Option    | Type   | Description                                   |
+| --------- | ------ | --------------------------------------------- |
+| `source`  | string | Path to source object (e.g., "options", "config.advanced") |
+| `pattern` | string | ECMAScript regex pattern to match keys        |
+| `format`  | string | Output format: "key-value" (default), "object", "keys", "values" |
+
+**Output formats:**
+
+- `key-value`: Array of `{key, value}` objects (default, sorted alphabetically)
+- `object`: Object with matched key-value pairs
+- `keys`: Array of matched keys only
+- `values`: Array of matched values only
+
 ## Template Writing Guidelines
 
 ### Array Expansion with {@items}
