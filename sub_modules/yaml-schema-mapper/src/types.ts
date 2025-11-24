@@ -12,8 +12,8 @@
  * Configuration for x-collect-pattern directive
  */
 export interface CollectPatternConfig {
-  source: string;
-  pattern: string;
+  source?: string;
+  pattern?: string;
   format?: "key-value" | "object" | "keys" | "values";
 }
 

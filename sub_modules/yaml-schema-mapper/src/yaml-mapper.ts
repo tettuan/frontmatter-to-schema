@@ -318,6 +318,38 @@ function mapObject(
 
     const currentPath = path ? `${path}.${schemaKey}` : schemaKey;
 
+    // Validate required fields in x-collect-pattern
+    if (!collectConfig.source) {
+      warnings.push({
+        code: WarningCode.COLLECT_PATTERN_SOURCE_NOT_FOUND,
+        message: `x-collect-pattern requires 'source' field`,
+        path: currentPath,
+        severity: "warning",
+        details: {
+          reason:
+            `Missing required 'source' field in x-collect-pattern directive`,
+          suggestion: `Add "source": "<path>" to specify where to collect from`,
+        },
+      });
+      continue;
+    }
+
+    if (!collectConfig.pattern) {
+      warnings.push({
+        code: WarningCode.COLLECT_PATTERN_INVALID_REGEX,
+        message: `x-collect-pattern requires 'pattern' field`,
+        path: currentPath,
+        severity: "warning",
+        details: {
+          reason:
+            `Missing required 'pattern' field in x-collect-pattern directive`,
+          suggestion:
+            `Add "pattern": "<regex>" to specify the pattern to match`,
+        },
+      });
+      continue;
+    }
+
     // Check if source has additionalProperties: false
     const sourceKey = collectConfig.source.split(".")[0];
     const sourceSchema = schemaProperties[sourceKey];

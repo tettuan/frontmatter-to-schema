@@ -315,3 +315,75 @@ Deno.test("x-collect-pattern - top-level source (uv pattern)", () => {
     author: "John",
   });
 });
+
+Deno.test("x-collect-pattern - missing source field", () => {
+  const schema = {
+    type: "object",
+    properties: {
+      options: {
+        type: "object",
+        additionalProperties: true,
+      },
+      collected: {
+        type: "array",
+        "x-collect-pattern": {
+          pattern: "^uv-.*$",
+        },
+      },
+    },
+  };
+
+  const data = {
+    options: {
+      "uv-test": "value",
+    },
+  };
+
+  const result = mapYamlToSchema({ schema, data });
+
+  // Should not throw, but produce a warning
+  const warningFound = result.warnings.some(
+    (w) =>
+      w.code === WarningCode.COLLECT_PATTERN_SOURCE_NOT_FOUND &&
+      w.message.includes("requires 'source' field"),
+  );
+  assertEquals(warningFound, true);
+  // Result should not have the collected property set to anything useful
+  assertEquals(result.data.collected, undefined);
+});
+
+Deno.test("x-collect-pattern - missing pattern field", () => {
+  const schema = {
+    type: "object",
+    properties: {
+      options: {
+        type: "object",
+        additionalProperties: true,
+      },
+      collected: {
+        type: "array",
+        "x-collect-pattern": {
+          source: "options",
+        },
+      },
+    },
+  };
+
+  const data = {
+    options: {
+      "uv-test": "value",
+    },
+  };
+
+  const result = mapYamlToSchema({ schema, data });
+
+  // Should not throw, but produce a warning
+  const warningFound = result.warnings.some(
+    (w) =>
+      w.code === WarningCode.COLLECT_PATTERN_INVALID_REGEX &&
+      w.message.includes("requires 'pattern' field"),
+  );
+  assertEquals(warningFound, true);
+  // Result should not have the collected property set to anything useful
+  assertEquals(result.data.collected, undefined);
+});
