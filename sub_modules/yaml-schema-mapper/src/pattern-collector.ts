@@ -53,6 +53,11 @@ export function collectByPattern(
   const warnings: MappingWarning[] = [];
   const format = config.format || "key-value";
 
+  // Validate required fields (should be validated before calling, but guard for safety)
+  if (!config.source || !config.pattern) {
+    return { data: [], warnings };
+  }
+
   // Resolve source path
   const sourceData = resolvePath(data, config.source);
 
