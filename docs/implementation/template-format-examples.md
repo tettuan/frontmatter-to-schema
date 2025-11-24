@@ -25,8 +25,8 @@
 
 ```json
 {
-  "name": "{{title}}",
-  "release": "{{version}}",
+  "name": "{title}",
+  "release": "{version}",
   "active": true
 }
 ```
@@ -109,10 +109,10 @@
 ```json
 {
   "project": {
-    "name": "{{title}}",
-    "release": "{{version}}",
-    "author": "{{metadata.author}}",
-    "tags": "{{metadata.tags}}"
+    "name": "{title}",
+    "release": "{version}",
+    "author": "{metadata.author}",
+    "tags": "{metadata.tags}"
   }
 }
 ```

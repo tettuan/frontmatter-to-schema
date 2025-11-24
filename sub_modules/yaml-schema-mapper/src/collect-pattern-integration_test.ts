@@ -260,3 +260,58 @@ Deno.test("x-collect-pattern - source not found", () => {
   );
   assertEquals(warningFound, true);
 });
+
+Deno.test("x-collect-pattern - top-level source (uv pattern)", () => {
+  const schema = {
+    type: "object",
+    properties: {
+      options: {
+        type: "object",
+        properties: {
+          input: { type: "array" },
+          destination: { type: "boolean" },
+        },
+      },
+      uv: {
+        type: "object",
+        additionalProperties: true,
+      },
+      user_variables: {
+        type: "array",
+        "x-collect-pattern": {
+          source: "uv",
+          pattern: "^.*$",
+        },
+      },
+    },
+  };
+
+  const data = {
+    options: {
+      input: ["default"],
+      destination: true,
+    },
+    uv: {
+      scope: "domain architecture",
+      date: "2025-06-08",
+      author: "John",
+    },
+  };
+
+  const result = mapYamlToSchema({ schema, data });
+
+  assertEquals(result.data.user_variables, [
+    { key: "author", value: "John" },
+    { key: "date", value: "2025-06-08" },
+    { key: "scope", value: "domain architecture" },
+  ]);
+  assertEquals(result.data.options, {
+    input: ["default"],
+    destination: true,
+  });
+  assertEquals(result.data.uv, {
+    scope: "domain architecture",
+    date: "2025-06-08",
+    author: "John",
+  });
+});
