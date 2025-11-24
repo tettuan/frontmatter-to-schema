@@ -3,7 +3,9 @@
 This directory contains the core architectural documentation for the
 frontmatter-to-schema project.
 
-## Core Documents
+## Processing Flow
+
+Core specifications for the main processing pipeline.
 
 - **[phase-boundaries.md](./phase-boundaries.md)**: Processing phase boundaries
   and sub-module integration (yaml-schema-mapper, data-path-resolver,
@@ -14,20 +16,63 @@ frontmatter-to-schema project.
 - **[template-processing-specification.md](./template-processing-specification.md)**:
   Complete template processing system specification including main processing
   flow (CLI → PipelineOrchestrator → OutputRenderingService)
+
+## Schema Directives (x-\*)
+
+Individual directive specifications for schema extensions.
+
+- **[x-collect-pattern-specification.md](./x-collect-pattern-specification.md)**:
+  Specification for x-collect-pattern directive - Pattern-based property
+  collection from schema definitions
+- **[x-template-items-specification.md](./x-template-items-specification.md)**:
+  Specification for x-template-items functionality - Template reference
+  management
+
+## Domain Architecture
+
+Domain-driven design patterns and responsibility separation.
+
+- **[schema-responsibility-separation.md](./schema-responsibility-separation.md)**:
+  Schema domain responsibility separation principles
+- **[template-schema-domain-handoff.md](./template-schema-domain-handoff.md)**:
+  Domain handoff mechanism for x-template-items between Template and Schema
+  domains
 - **[template-output-subdomain-separation.md](./template-output-subdomain-separation.md)**:
   Template output subdomain architecture - Clear separation between list
   aggregation and document iteration processing
+
+## List Processing Architecture
+
+Architectural principles for list handling.
+
 - **[list-container-vs-list-items-separation.md](./list-container-vs-list-items-separation.md)**:
   Critical architectural principle - Separation between list containers and list
   items
 - **[list-output-definition.md](./list-output-definition.md)**: Definitive
   definition of list output - What it is and what it is NOT
-- **[x-template-items-specification.md](./x-template-items-specification.md)**:
-  Specification for x-template-items functionality - Template reference
-  management
-- **[template-schema-domain-handoff.md](./template-schema-domain-handoff.md)**:
-  Domain handoff mechanism for x-template-items between Template and Schema
-  domains
+
+## Template & Context Management
+
+Template context and variable resolution specifications.
+
+- **[template-context-specification.md](./template-context-specification.md)**:
+  Template context management and variable scope specification
+- **[template-variable-resolution-roadmap.md](./template-variable-resolution-roadmap.md)**:
+  Roadmap for template variable resolution implementation
+
+## Data Mapping
+
+Schema property mapping and resolution rules.
+
+- **[mapping-hierarchy-rules.md](./mapping-hierarchy-rules.md)**: Mapping
+  hierarchy rules for schema property resolution
+
+## Compliance & Status
+
+DDD and Totality compliance tracking.
+
+- **[ddd-totality-compliance-status.md](./ddd-totality-compliance-status.md)**:
+  DDD and Totality principle compliance status tracking
 
 ## Sub-Module Architecture
 

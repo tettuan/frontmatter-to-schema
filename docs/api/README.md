@@ -131,7 +131,7 @@ const result = await analyzer.analyze(frontMatter, schema);
 
 Supports multiple template formats:
 
-- JSON with placeholders: `{"name": "{{name}}"}`
+- JSON with placeholders: `{"name": "{name}"}`
 - YAML mappings
 - Handlebars templates
 - Custom transformations

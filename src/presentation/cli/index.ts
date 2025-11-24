@@ -55,6 +55,8 @@ export class CLI {
         case "--help":
         case "-h":
           return this.showHelp();
+        case "--help-authoring":
+          return this.showAuthoringHelp();
         case "version":
         case "--version":
         case "-v":
@@ -428,6 +430,9 @@ COMMANDS:
     help, --help, -h
         Show this help message
 
+    --help-authoring
+        Show Schema/Template authoring guide
+
     version, --version, -v
         Show version information
 
@@ -483,6 +488,94 @@ EXAMPLES:
 
     console.log(helpText);
     return { ok: true, data: helpText };
+  }
+
+  private showAuthoringHelp(): CLIResponse {
+    const authoringHelp = `
+SCHEMA/TEMPLATE AUTHORING GUIDE
+
+SCHEMA DIRECTIVES (x-*):
+
+  x-source-key <string>
+      Maps a YAML frontmatter key to the schema property.
+      Example: "x-source-key": "post_title"
+      Result: Uses frontmatter's "post_title" value for this property
+
+  x-derived-from <path>
+      Derives value from another property using dot notation path.
+      Example: "x-derived-from": "metadata.author.name"
+      Result: Extracts nested value from the resolved data
+
+  x-default <value>
+      Provides default value when source is missing or null.
+      Example: "x-default": "Untitled"
+      Result: Uses "Untitled" if no value found
+
+  x-template <path>
+      References external template file for output structure.
+      Example: "x-template": "./template.json"
+      Result: Uses template for final output formatting
+
+  x-template-items <path>
+      Template for array item rendering.
+      Example: "x-template-items": "./item-template.json"
+      Result: Each array item uses this template
+
+  x-collect-pattern <regex>
+      Collects properties matching regex pattern into object.
+      Example: "x-collect-pattern": "^meta_"
+      Result: All "meta_*" properties collected into single object
+
+  x-template-format <format>
+      Specifies output format: json, yaml, xml, markdown
+      Example: "x-template-format": "yaml"
+      Result: Output rendered in YAML format
+
+TEMPLATE VARIABLES:
+
+  {property}
+      Simple variable substitution from resolved data.
+      Example: {"title": "{name}"}
+
+  {nested.path.value}
+      Dot notation for nested property access.
+      Example: {"author": "{user.profile.name}"}
+
+SCHEMA EXAMPLE:
+
+  {
+    "type": "object",
+    "x-template": "./template.json",
+    "x-template-format": "yaml",
+    "properties": {
+      "title": {
+        "type": "string",
+        "x-source-key": "post_title",
+        "x-default": "Untitled"
+      },
+      "author": {
+        "type": "string",
+        "x-derived-from": "metadata.author.name"
+      }
+    }
+  }
+
+TEMPLATE EXAMPLE:
+
+  {
+    "document": {
+      "name": "{title}",
+      "writer": "{author}",
+      "generated": true
+    }
+  }
+
+SEE ALSO:
+    --help              CLI usage and options
+    --version           Version information
+`;
+    console.log(authoringHelp);
+    return { ok: true, data: authoringHelp };
   }
 
   private showVersion(): CLIResponse {
