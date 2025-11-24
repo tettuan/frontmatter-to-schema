@@ -1,5 +1,7 @@
 # x-collect-pattern ディレクティブ設計書
 
+> **Usage Guide**: 使い方とサンプルコードは [x-collect-pattern Usage Guide](../usage/x-collect-pattern.md) を参照してください。
+
 ## 概要
 
 Schema定義でワイルドカードパターンを指定し、パターンにマッチするプロパティを収集してテンプレートで利用可能にする機能。
@@ -358,110 +360,14 @@ sub_module/yaml-schema-mapper/feature/collect-pattern
 
 ## 使用例
 
-### Schema定義
+詳細な使用例とサンプルコードは **[Usage Guide](../usage/x-collect-pattern.md)** を参照してください。
 
-```json
-{
-  "$schema": "http://json-schema.org/draft-07/schema#",
-  "type": "object",
-  "properties": {
-    "options": {
-      "type": "object",
-      "properties": {
-        "input": { "type": "array" },
-        "destination": { "type": "boolean" }
-      },
-      "additionalProperties": true
-    },
-    "user_variables": {
-      "type": "array",
-      "description": "Collected user variables matching uv-* pattern",
-      "x-collect-pattern": {
-        "source": "options",
-        "pattern": "^uv-.*$"
-      },
-      "items": {
-        "type": "object",
-        "properties": {
-          "key": { "type": "string" },
-          "value": { "type": "string" }
-        }
-      }
-    }
-  }
-}
-```
-
-### 入力フロントマター
-
-```yaml
----
-options:
-  input: ["default"]
-  destination: true
-  uv-scope: "domain architecture"
-  uv-date: "2025-06-08"
-  uv-author: "John"
----
-```
-
-### 処理結果
-
-```json
-{
-  "options": {
-    "input": ["default"],
-    "destination": true,
-    "uv-scope": "domain architecture",
-    "uv-date": "2025-06-08",
-    "uv-author": "John"
-  },
-  "user_variables": [
-    { "key": "uv-author", "value": "John" },
-    { "key": "uv-date", "value": "2025-06-08" },
-    { "key": "uv-scope", "value": "domain architecture" }
-  ]
-}
-```
-
-### アイテムテンプレート（registry_command_template.json）
-
-```json
-{
-  "c1": "{c1}",
-  "c2": "{c2}",
-  "c3": "{c3}",
-  "options": {
-    "input": "{options.input}",
-    "destination": "{options.destination}"
-  },
-  "user_variables": "{user_variables}"
-}
-```
-
-**説明**:
-- `{user_variables}` で収集された配列全体を参照
-- 配列はそのままJSON出力に含まれる
-- `{@items}` は使用しない（`x-frontmatter-part`用の記法）
-
-### 最終出力例
-
-```json
-{
-  "c1": "refactor",
-  "c2": "basedon",
-  "c3": "ddd",
-  "options": {
-    "input": ["default"],
-    "destination": true
-  },
-  "user_variables": [
-    { "key": "uv-author", "value": "John" },
-    { "key": "uv-date", "value": "2025-06-08" },
-    { "key": "uv-scope", "value": "domain architecture" }
-  ]
-}
-```
+使用ガイドには以下が含まれます：
+- 基本的な使用パターン（ネストオブジェクト / トップレベルオブジェクト）
+- Schema、フロントマター、テンプレート、出力のサンプル
+- additionalProperties 配置ルール
+- フォーマットオプション
+- ベストプラクティス
 
 ---
 
