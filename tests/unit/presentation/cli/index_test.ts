@@ -54,6 +54,44 @@ describe("CLI", () => {
       });
     });
 
+    describe("authoring help command", () => {
+      it("should show authoring help for '--help-authoring' flag", async () => {
+        const response = await cli.run(["--help-authoring"]);
+        assertEquals(response.ok, true);
+        assertExists(response.data);
+        assertEquals(typeof response.data, "string");
+        assertEquals(
+          (response.data as string).includes("SCHEMA/TEMPLATE AUTHORING GUIDE"),
+          true,
+        );
+      });
+
+      it("should include schema directives in authoring help", async () => {
+        const response = await cli.run(["--help-authoring"]);
+        assertEquals(response.ok, true);
+        const helpText = response.data as string;
+        assertEquals(helpText.includes("x-source-key"), true);
+        assertEquals(helpText.includes("x-derived-from"), true);
+        assertEquals(helpText.includes("x-collect-pattern"), true);
+      });
+
+      it("should include template variable syntax in authoring help", async () => {
+        const response = await cli.run(["--help-authoring"]);
+        assertEquals(response.ok, true);
+        const helpText = response.data as string;
+        assertEquals(helpText.includes("{property}"), true);
+        assertEquals(helpText.includes("{user.profile.name}"), true);
+      });
+
+      it("should include examples in authoring help", async () => {
+        const response = await cli.run(["--help-authoring"]);
+        assertEquals(response.ok, true);
+        const helpText = response.data as string;
+        assertEquals(helpText.includes("SCHEMA EXAMPLE:"), true);
+        assertEquals(helpText.includes("TEMPLATE EXAMPLE:"), true);
+      });
+    });
+
     describe("version command", () => {
       it("should show version for 'version' command", async () => {
         const response = await cli.run(["version"]);
