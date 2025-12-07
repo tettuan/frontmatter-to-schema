@@ -70,7 +70,7 @@ describe("CLI", () => {
         const response = await cli.run(["--help-authoring"]);
         assertEquals(response.ok, true);
         const helpText = response.data as string;
-        assertEquals(helpText.includes("x-source-key"), true);
+        assertEquals(helpText.includes("x-frontmatter-part"), true);
         assertEquals(helpText.includes("x-derived-from"), true);
         assertEquals(helpText.includes("x-collect-pattern"), true);
       });

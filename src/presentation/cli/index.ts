@@ -496,40 +496,45 @@ SCHEMA/TEMPLATE AUTHORING GUIDE
 
 SCHEMA DIRECTIVES (x-*):
 
-  x-source-key <string>
-      Maps a YAML frontmatter key to the schema property.
-      Example: "x-source-key": "post_title"
-      Result: Uses frontmatter's "post_title" value for this property
-
-  x-derived-from <path>
-      Derives value from another property using dot notation path.
-      Example: "x-derived-from": "metadata.author.name"
-      Result: Extracts nested value from the resolved data
-
-  x-default <value>
-      Provides default value when source is missing or null.
-      Example: "x-default": "Untitled"
-      Result: Uses "Untitled" if no value found
-
   x-template <path>
       References external template file for output structure.
       Example: "x-template": "./template.json"
-      Result: Uses template for final output formatting
 
   x-template-items <path>
-      Template for array item rendering.
+      Template for array item rendering (used with x-frontmatter-part).
       Example: "x-template-items": "./item-template.json"
-      Result: Each array item uses this template
-
-  x-collect-pattern <regex>
-      Collects properties matching regex pattern into object.
-      Example: "x-collect-pattern": "^meta_"
-      Result: All "meta_*" properties collected into single object
 
   x-template-format <format>
-      Specifies output format: json, yaml, xml, markdown
+      Specifies output format: json, yaml
       Example: "x-template-format": "yaml"
-      Result: Output rendered in YAML format
+
+  x-frontmatter-part <boolean>
+      Marks array to receive individual frontmatter from multiple files.
+      Example: "x-frontmatter-part": true
+
+  x-derived-from <path>
+      Derives value from another property using path expression.
+      Example: "x-derived-from": "commands[].tags"
+
+  x-derived-unique <boolean>
+      Removes duplicate values from derived arrays.
+      Example: "x-derived-unique": true
+
+  x-flatten-arrays <property>
+      Flattens nested array structures in specified property.
+      Example: "x-flatten-arrays": "tags"
+
+  x-collect-pattern <object>
+      Collects properties matching regex pattern.
+      Example: "x-collect-pattern": {"source": "options", "pattern": "^uv-"}
+
+  x-map-from <string|array>
+      Maps from alternative property names.
+      Example: "x-map-from": ["writer", "author"]
+
+  x-jmespath-filter <expression>
+      Applies JMESPath expression for filtering/transformation.
+      Example: "x-jmespath-filter": "items[?status==\`active\`]"
 
 TEMPLATE VARIABLES:
 
@@ -548,14 +553,21 @@ SCHEMA EXAMPLE:
     "x-template": "./template.json",
     "x-template-format": "yaml",
     "properties": {
-      "title": {
-        "type": "string",
-        "x-source-key": "post_title",
-        "x-default": "Untitled"
+      "commands": {
+        "type": "array",
+        "x-frontmatter-part": true,
+        "items": {
+          "type": "object",
+          "properties": {
+            "name": { "type": "string" },
+            "tags": { "type": "array" }
+          }
+        }
       },
-      "author": {
-        "type": "string",
-        "x-derived-from": "metadata.author.name"
+      "allTags": {
+        "type": "array",
+        "x-derived-from": "commands[].tags",
+        "x-derived-unique": true
       }
     }
   }
