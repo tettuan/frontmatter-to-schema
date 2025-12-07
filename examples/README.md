@@ -113,3 +113,162 @@ examples/
 
 `examples/`
 ディレクトリは、frontmatter-to-schemaツールが単一のCLIでありながら、多様な文書管理ニーズに対応できることを実証する、生きたドキュメントとして機能しています。
+
+---
+
+## Schema/Template 構築ガイド
+
+初めてSchema/Templateを構築する際のガイドです。
+
+### 必須ファイル構成
+
+```
+your-project/
+├── schema.json              # 必須: フロントマター構造定義 + ディレクティブ
+├── template.json            # 必須: 出力構造定義（コンテナ）
+├── item_template.json       # 条件付き必須: 複数ファイル処理時のアイテムテンプレート
+└── docs/
+    └── *.md                 # 処理対象のMarkdownファイル群
+```
+
+### 最小構成（単一ファイル処理）
+
+2ファイルで動作可能：
+
+```json
+// schema.json
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "x-template": "template.json",
+  "properties": {
+    "title": { "type": "string" },
+    "author": { "type": "string" }
+  }
+}
+```
+
+```json
+// template.json
+{
+  "title": "{title}",
+  "author": "{author}"
+}
+```
+
+### 複数ファイル処理（リスト生成）
+
+3ファイル必須：
+
+```
+schema.json          ─┬─ x-template → template.json
+                      └─ x-template-items → item_template.json
+
+template.json        ─── {@items} プレースホルダー配置
+item_template.json   ─── 各アイテムの構造定義
+```
+
+#### Schema（registry_schema.json）
+
+```json
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "x-template": "template.json",
+  "x-template-items": "item_template.json",
+  "properties": {
+    "items": {
+      "type": "array",
+      "x-frontmatter-part": true,
+      "items": { "$ref": "item_schema.json" }
+    }
+  }
+}
+```
+
+#### Container Template（template.json）
+
+```json
+{
+  "version": "1.0.0",
+  "items": "{@items}"
+}
+```
+
+#### Item Template（item_template.json）
+
+```json
+{
+  "title": "{title}",
+  "author": "{author}"
+}
+```
+
+### ディレクティブ早見表
+
+| ディレクティブ | 配置場所 | 値の型 | 役割 |
+|---------------|---------|--------|------|
+| `x-template` | Schema root | `string` (ファイルパス) | コンテナテンプレート指定 |
+| `x-template-items` | Schema root | `string` (ファイルパス) | アイテムテンプレート指定 |
+| `x-frontmatter-part` | Schema property | `boolean` (true) | フロントマター配列挿入位置 |
+| `x-derived-from` | Schema property | `string` (パス式) | 他プロパティから値を導出 |
+| `x-derived-unique` | Schema property | `boolean` | 導出配列の重複除去 |
+| `{@items}` | Template | - | アイテム配列の挿入位置 |
+| `{property}` | Template | - | 変数置換 |
+
+### 処理フロー
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│ 1. Markdownファイル群読込                                        │
+│    docs/*.md → フロントマター抽出                                │
+└─────────────────────────────────────────────────────────────────┘
+                              ↓
+┌─────────────────────────────────────────────────────────────────┐
+│ 2. Schema検証                                                   │
+│    各フロントマター → schema.json で構造検証                     │
+└─────────────────────────────────────────────────────────────────┘
+                              ↓
+┌─────────────────────────────────────────────────────────────────┐
+│ 3. アイテム展開（x-template-items指定時）                        │
+│    各フロントマター → item_template.json で変換                  │
+└─────────────────────────────────────────────────────────────────┘
+                              ↓
+┌─────────────────────────────────────────────────────────────────┐
+│ 4. コンテナ生成                                                  │
+│    template.json の {@items} → 展開済みアイテム配列で置換        │
+└─────────────────────────────────────────────────────────────────┘
+                              ↓
+┌─────────────────────────────────────────────────────────────────┐
+│ 5. 出力                                                         │
+│    JSON/YAML形式で出力                                          │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### よくある誤り
+
+| 誤り | 正しい形式 |
+|------|-----------|
+| `"x-template-items": { "path": "...", "key": "..." }` | `"x-template-items": "item_template.json"` |
+| `"x-template-items": true` （Template内） | `"{@items}"` |
+| `x-frontmatter-part` をTemplate内に配置 | Schema内のpropertyに配置 |
+| item_template.json を省略（複数ファイル処理時） | 必ず作成 |
+
+### 動作確認コマンド
+
+```bash
+# 構文確認（verbose モードで詳細表示）
+frontmatter-to-schema schema.json output.json ./docs/*.md --verbose
+
+# CLIヘルプでディレクティブ詳細確認
+frontmatter-to-schema --help-authoring
+```
+
+### 実例の参照
+
+各ディレクトリに完全な動作例があります：
+
+- `0.basic/` - 基本パターン
+- `1.articles/` - 記事一覧生成
+- `2.climpt/` - コマンドレジストリ（複数ファイル→JSON）
+- `3.docs/` - トレーサビリティ管理
