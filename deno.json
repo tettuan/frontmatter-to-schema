@@ -1,6 +1,6 @@
 {
-  "name": "@scope/frontmatter-to-schema",
-  "version": "1.5.2",
+  "name": "@aidevtool/frontmatter-to-schema",
+  "version": "1.6.0",
   "description": "Convert frontmatter to JSON schema",
   "license": "MIT",
   "exports": "./mod.ts",
@@ -10,8 +10,26 @@
       "tests/**/*",
       "tmp/**/*",
       ".agent/**/*",
+      ".claude/**/*",
+      ".github/**/*",
+      ".obsidian/**/*",
+      ".deno/**/*",
+      ".mcp.json",
+      ".envrc",
       "scripts/**/*",
-      "examples/**/*"
+      "examples/**/*",
+      "docs/**/*",
+      "config/**/*",
+      "CLAUDE.md",
+      "CHANGELOG.md",
+      "container.json",
+      "ci.json",
+      "frontmatter-to-schema",
+      "sub_modules/CLAUDE.md",
+      "sub_modules/**/CLAUDE.md",
+      "sub_modules/**/tests/**/*",
+      "sub_modules/**/docs/**/*",
+      "sub_modules/**/*_test.ts"
     ]
   },
   "lint": {

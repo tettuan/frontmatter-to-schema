@@ -1,0 +1,32 @@
+name: Publish
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Deno
+        uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+
+      - name: Verify version tag matches deno.json
+        run: |
+          TAG_VERSION="${GITHUB_REF#refs/tags/v}"
+          DENO_VERSION=$(deno eval "console.log(JSON.parse(Deno.readTextFileSync('deno.json')).version)")
+          if [ "$TAG_VERSION" != "$DENO_VERSION" ]; then
+            echo "Error: Tag version ($TAG_VERSION) does not match deno.json version ($DENO_VERSION)"
+            exit 1
+          fi
+
+      - name: Publish package
+        run: deno publish
