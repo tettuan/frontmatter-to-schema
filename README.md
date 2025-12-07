@@ -278,8 +278,18 @@ Custom JSON Schema extensions for enhanced functionality:
 For detailed documentation, syntax, and examples, see
 **[Schema Extensions Reference](./docs/schema-extensions.md)**.
 
-For practical setup guides and working examples, see
-**[Examples Guide](./examples/README.md)**.
+## Examples
+
+Working examples demonstrating various use cases. See
+**[Examples Guide](./examples/README.md)** for setup instructions.
+
+| Example | Description | Key Features |
+|---------|-------------|--------------|
+| [0.basic](./examples/0.basic/) | Minimal demo of core features | `x-derived-from`, `x-frontmatter-part`, schema validation |
+| [1.articles](./examples/1.articles/) | Article index generator | Multi-file processing, YAML output, aggregation |
+| [2.climpt](./examples/2.climpt/) | CLI prompt registry | `{@items}` expansion, nested templates |
+| [3.docs](./examples/3.docs/) | Multi-level documentation | Spec-trace levels (req/spec/design/impl/test) |
+| [4.multi-directory-glob](./examples/4.multi-directory-glob/) | Cross-directory processing | Glob patterns across subdirectories |
 
 ## Advanced Usage
 
