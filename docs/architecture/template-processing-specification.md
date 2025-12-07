@@ -183,8 +183,50 @@ For complete details, see `mapping-hierarchy-rules.md`.
 | `{path.to.variable}` | Hierarchical variable     | Dot-notation traversal                 |
 | `{array[].property}` | Array property extraction | Map operation on array elements        |
 | `{@items}`           | Array item expansion      | Apply x-template-items to each element |
+| `${variable}`        | String interpolation      | Always converts to string              |
+| `{$timestamp}`       | Built-in variable         | System-generated values                |
 
-### 4.2 Variable Resolution Algorithm
+### 4.2 Template Variable Scope
+
+Templates operate in different scopes depending on their role.
+
+#### Container Template (x-template) Scope
+
+The container template has access to:
+
+| Variable Category      | Example                    | Source                                  |
+| ---------------------- | -------------------------- | --------------------------------------- |
+| Schema defaults        | `{version}`                | Values from schema `default` properties |
+| x-derived-* results    | `{tools.availableConfigs}` | Aggregated values from directives       |
+| Root-level frontmatter | `{description}`            | Only if single document processed       |
+| Special markers        | `{@items}`                 | Replaced with items array               |
+| Built-in variables     | `{$timestamp}`             | System-generated values                 |
+
+#### Items Template (x-template-items) Scope
+
+The items template processes each array element individually:
+
+| Variable Category       | Example           | Source                      |
+| ----------------------- | ----------------- | --------------------------- |
+| Current item properties | `{c1}`, `{title}` | Direct property access      |
+| Nested item properties  | `{options.input}` | Dot-notation traversal      |
+| **Not available**       | `{version}`       | Parent scope not accessible |
+
+**Important**: Items templates cannot access container-scope variables. To use
+shared data in items, include it in each frontmatter file or restructure the
+template architecture.
+
+#### Unresolved Variable Behavior
+
+| Scenario                    | Input            | Output                       |
+| --------------------------- | ---------------- | ---------------------------- |
+| Single variable placeholder | `"{missing}"`    | `"{missing}"` (preserved)    |
+| Embedded in string          | `"Hello {name}"` | `"Hello {name}"` (preserved) |
+| Array type expected         | `"{items}"`      | `null` or empty array        |
+
+Unresolved variables are preserved to help identify configuration issues.
+
+### 4.3 Variable Resolution Algorithm
 
 ```typescript
 interface VariableResolver {
@@ -256,6 +298,33 @@ graph LR
 - Resolve template paths to absolute locations
 - Validate template reference integrity
 - Provide schema extension metadata
+
+#### Template Path Resolution
+
+Template paths specified in `x-template` and `x-template-items` are resolved
+relative to the schema file location.
+
+| Context                 | Base Directory        | Behavior                            |
+| ----------------------- | --------------------- | ----------------------------------- |
+| CLI invocation          | Schema file directory | Consistent resolution               |
+| `processFiles()` API    | Schema file directory | Matches CLI behavior                |
+| `processMarkdown()` API | N/A                   | Templates must be provided directly |
+
+**Example:**
+
+```
+project/
+├── schemas/
+│   └── registry_schema.json    ← x-template: "templates/main.json"
+└── templates/
+    └── main.json               ← Resolved path: project/schemas/templates/main.json
+```
+
+**Note**: The path `templates/main.json` is resolved relative to the schema
+file's directory (`project/schemas/`), not the current working directory.
+
+For `processMarkdown()`, template objects must be provided directly since there
+is no schema file path for resolution.
 
 ### 6.2 Template Domain Responsibilities
 

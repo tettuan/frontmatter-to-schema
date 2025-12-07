@@ -3,6 +3,17 @@
 This document describes the custom JSON Schema extensions (`x-*` properties)
 supported by frontmatter-to-schema.
 
+## Related Documentation
+
+- **[Transformation Model](./concepts/transformation-model.md)** - Conceptual
+  overview of how x-\* directives work as a transformation language
+- **[Directive Selection Guide](./guides/directive-selection.md)** - Decision
+  flow for choosing which directives to use
+- **[Troubleshooting Guide](./troubleshooting.md)** - Common issues and
+  debugging tips
+
+---
+
 ## Overview
 
 These extensions enhance standard JSON Schema with frontmatter-specific
@@ -10,12 +21,12 @@ functionality, organized into three categories:
 
 ### Schema Structure Control
 
-| Extension          | Level    | Description                           |
-| ------------------ | -------- | ------------------------------------- |
-| `x-derived-from`   | Property | Derive values from nested properties  |
-| `x-derived-unique` | Property | Remove duplicates from derived values |
-| `x-flatten-arrays` | Property | Flatten nested array structures       |
-| `x-jmespath-filter`| Property | Apply JMESPath expression             |
+| Extension           | Level    | Description                           |
+| ------------------- | -------- | ------------------------------------- |
+| `x-derived-from`    | Property | Derive values from nested properties  |
+| `x-derived-unique`  | Property | Remove duplicates from derived values |
+| `x-flatten-arrays`  | Property | Flatten nested array structures       |
+| `x-jmespath-filter` | Property | Apply JMESPath expression             |
 
 ### Frontmatter Processing Control
 
@@ -95,17 +106,60 @@ parent.child[].deepProperty
 
 ### Supported Expressions
 
-| Expression                | Description                        |
-| ------------------------- | ---------------------------------- |
-| `items[].property`        | Extract property from array items  |
-| `nested.items[].property` | Navigate nested path first         |
-| `items[].deep.property`   | Extract nested property from items |
+| Expression                | Description                        | Example Input                      | Output           |
+| ------------------------- | ---------------------------------- | ---------------------------------- | ---------------- |
+| `property`                | Top-level property access          | `{ "c1": "git" }`                  | `"git"`          |
+| `parent.child`            | Dot-notation traversal             | `{ "user": { "name": "John" } }`   | `"John"`         |
+| `items[].property`        | Extract property from array items  | `{ "items": [{ "id": 1 }, ...] }`  | `[1, ...]`       |
+| `nested.items[].property` | Navigate nested path first         | `{ "data": { "items": [...] } }`   | Extracted values |
+| `items[].deep.property`   | Extract nested property from items | `{ "items": [{ "a": { "b": 1 }}]}` | `[1]`            |
+
+### Common Path Issues
+
+| Issue                  | Incorrect                  | Correct                 | Explanation                |
+| ---------------------- | -------------------------- | ----------------------- | -------------------------- |
+| Missing array notation | `"commands.c1"`            | `"commands[].c1"`       | Need `[]` to iterate array |
+| Wrong nesting level    | `"c1"` (for nested)        | `"tools.commands[].c1"` | Must include full path     |
+| JSONPath syntax        | `"$.tools.commands[*].c1"` | `"tools.commands[].c1"` | JSONPath not supported     |
+| JMESPath filter        | `"commands[?active].c1"`   | Use `x-jmespath-filter` | Filters not supported here |
 
 ### Not Supported
 
 - JMESPath filter expressions: `items[?status==true]`
+- JSONPath syntax: `$.items[*].name`
 - Complex queries or transformations
 - Multiple array traversals: `items[].subitems[].value`
+- String manipulation (substring extraction, splitting)
+- Regular expression matching
+- Custom transformation functions
+
+**Important**: The path syntax is specific to this system. It is neither
+JSONPath nor JMESPath. For JMESPath queries, use `x-jmespath-filter` instead.
+
+For common path issues and debugging, see the
+[Troubleshooting Guide](./troubleshooting.md#schema-and-template-issues).
+
+### Path Resolution Context
+
+Paths are resolved against the **aggregated data structure**, not raw
+frontmatter. Processing happens in phases:
+
+1. Frontmatter extraction (raw per-file data)
+2. `x-frontmatter-part` aggregation (arrays populated from files)
+3. `x-derived-from` processing (values extracted from aggregated data)
+4. Template rendering (final output)
+
+This means `x-derived-from` can only access data that exists **after**
+`x-frontmatter-part` has collected array items. For example:
+
+```json
+{
+  "x-derived-from": "tools.commands[].c1"
+}
+```
+
+This path assumes `tools.commands` is already populated with array items from
+the `x-frontmatter-part` directive.
 
 ---
 
@@ -235,7 +289,7 @@ Applies JMESPath expression for advanced data filtering and transformation.
 | -------------------------------------- | ------------------------ |
 | `items[?status==\`active\`]`           | Filter by condition      |
 | `items[*].name`                        | Extract all names        |
-| `items | [0]`                          | Get first item           |
+| `items                                 | [0]`                     |
 | `{count: length(items)}`               | Create summary object    |
 | `items[?contains(tags, \`featured\`)]` | Filter by array contains |
 
@@ -246,9 +300,75 @@ Applies JMESPath expression for advanced data filtering and transformation.
 
 ---
 
+## Value Transformation Limitations
+
+Schema directives extract and aggregate values but do **not** transform them.
+String manipulation, substring extraction, and custom transformations are not
+supported.
+
+### Not Supported
+
+| Transformation     | Example Need                   | Status       |
+| ------------------ | ------------------------------ | ------------ |
+| Substring          | `"climpt-git"` → `"git"`       | Not possible |
+| Split              | `"a/b/c"` → `["a", "b", "c"]`  | Not possible |
+| Replace            | `"old-name"` → `"new-name"`    | Not possible |
+| Regular expression | Extract pattern matches        | Not possible |
+| Custom function    | Apply arbitrary transformation | Not possible |
+
+### Workarounds
+
+**1. Restructure source data:**
+
+Instead of:
+
+```yaml
+c1: climpt-git
+```
+
+Use separate fields:
+
+```yaml
+c1_prefix: climpt
+c1: git
+```
+
+**2. Pre-compute in frontmatter:**
+
+```yaml
+c1_full: climpt-git
+c1: git # Pre-extracted for direct use
+```
+
+**3. Post-process output:**
+
+```typescript
+const output = JSON.parse(await Deno.readTextFile("output.json"));
+output.items = output.items.map((item) => ({
+  ...item,
+  domain: item.c1.split("-").pop(),
+}));
+await Deno.writeTextFile("output.json", JSON.stringify(output, null, 2));
+```
+
+**4. Use x-jmespath-filter (limited):**
+
+JMESPath has limited string functions. Test thoroughly:
+
+```json
+{
+  "domains": {
+    "x-jmespath-filter": "items[*].c1"
+  }
+}
+```
+
+---
+
 # Frontmatter Processing Control
 
-Extensions for controlling how frontmatter is read and processed from source files.
+Extensions for controlling how frontmatter is read and processed from source
+files.
 
 ---
 
