@@ -275,8 +275,29 @@ Custom JSON Schema extensions for enhanced functionality:
 | `x-map-from`         | Map from alternative property names          |
 | `x-jmespath-filter`  | Apply JMESPath expression for transformation |
 
-For detailed documentation, syntax, and examples, see
-**[Schema Extensions Reference](./docs/schema-extensions.md)**.
+**Documentation:**
+
+- **[Transformation Model](./docs/concepts/transformation-model.md)** -
+  Conceptual overview of the x-\* directive transformation language
+- **[Directive Selection Guide](./docs/guides/directive-selection.md)** - Which
+  directives to use for your use case
+- **[Schema Extensions Reference](./docs/schema-extensions.md)** - Detailed
+  syntax and examples
+- **[Troubleshooting Guide](./docs/troubleshooting.md)** - Common issues and
+  debugging
+
+## Examples
+
+Working examples demonstrating various use cases. See
+**[Examples Guide](./examples/README.md)** for setup instructions.
+
+| Example                                                      | Description                   | Key Features                                              |
+| ------------------------------------------------------------ | ----------------------------- | --------------------------------------------------------- |
+| [0.basic](./examples/0.basic/)                               | Minimal demo of core features | `x-derived-from`, `x-frontmatter-part`, schema validation |
+| [1.articles](./examples/1.articles/)                         | Article index generator       | Multi-file processing, YAML output, aggregation           |
+| [2.climpt](./examples/2.climpt/)                             | CLI prompt registry           | `{@items}` expansion, nested templates                    |
+| [3.docs](./examples/3.docs/)                                 | Multi-level documentation     | Spec-trace levels (req/spec/design/impl/test)             |
+| [4.multi-directory-glob](./examples/4.multi-directory-glob/) | Cross-directory processing    | Glob patterns across subdirectories                       |
 
 ## Advanced Usage
 
@@ -326,7 +347,8 @@ deno fmt
 deno lint
 ```
 
-For detailed development guidelines, see [docs/](./docs/).
+For detailed development guidelines, see
+[Documentation Index](./docs/CLAUDE.md).
 
 ## License
 

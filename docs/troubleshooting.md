@@ -1,5 +1,16 @@
 # Troubleshooting Guide
 
+## Related Documentation
+
+- **[Transformation Model](./concepts/transformation-model.md)** - Understand
+  the processing pipeline
+- **[Directive Selection Guide](./guides/directive-selection.md)** - Choosing
+  the right directives
+- **[Schema Extensions Reference](./schema-extensions.md)** - Directive syntax
+  and examples
+
+---
+
 ## Error Handling and Validation Enhancements
 
 This guide covers the enhanced error handling and validation features
@@ -14,6 +25,7 @@ and debugging capabilities.
 4. [Directive Validation](#directive-validation)
 5. [Performance Troubleshooting](#performance-troubleshooting)
 6. [FAQ](#faq)
+7. [Schema and Template Issues](#schema-and-template-issues)
 
 ## Common Error Types
 
@@ -463,6 +475,134 @@ if (!result.success && result.data) {
 }
 ```
 
+## Schema and Template Issues
+
+### Empty x-derived-from Results
+
+**Symptom:**
+
+```json
+{
+  "tools": {
+    "availableConfigs": [],
+    "commands": [...]
+  }
+}
+```
+
+**Possible Causes:**
+
+| Cause            | Check                                             | Solution                              |
+| ---------------- | ------------------------------------------------- | ------------------------------------- |
+| Wrong path       | Is `tools.commands[].c1` correct for your schema? | Verify schema structure               |
+| Processing order | Is x-frontmatter-part before x-derived-from?      | Ensure correct directive placement    |
+| No c1 values     | Do your frontmatter files have `c1` field?        | Add c1 to frontmatter                 |
+| Path typo        | Check exact property names                        | Compare against actual data structure |
+
+**Diagnostic Steps:**
+
+1. Verify frontmatter contains expected field:
+   ```yaml
+   ---
+   c1: git  # This field must exist
+   ---
+   ```
+
+2. Check path matches schema nesting:
+   ```json
+   // If schema has nested tools.commands:
+   "x-derived-from": "tools.commands[].c1"
+
+   // If schema has flat commands:
+   "x-derived-from": "commands[].c1"
+   ```
+
+See [Schema Extensions Reference](./schema-extensions.md) for path syntax
+details.
+
+### Template Variable Not Expanding
+
+**Symptom:**
+
+```json
+{
+  "usage": "{title}\nExample: git create branch"
+}
+```
+
+The `{title}` is not expanded but other variables are.
+
+**Causes:**
+
+| Cause                       | Example                               | Solution                       |
+| --------------------------- | ------------------------------------- | ------------------------------ |
+| Compound expansion          | `"{title}\n{c1}"` in one placeholder  | Split into separate properties |
+| Variable not in schema      | Frontmatter has `author`, schema does | Add property to schema         |
+| Wrong scope                 | Items template accessing container    | Check variable scope           |
+| Multi-line string embedding | Variable inside multi-line string     | Use single-value placeholders  |
+
+**Key Constraint: Single Reference Only**
+
+Each placeholder can reference **only one variable**:
+
+```json
+// ❌ Wrong - compound expansion not supported
+{ "usage": "{title}\n{c1}" }
+
+// ✅ Correct - one variable per placeholder
+{
+  "title": "{title}",
+  "command": "{c1}"
+}
+```
+
+**Key Constraint: Schema-Defined Variables Only**
+
+Variables must be declared in the schema to be expanded:
+
+```yaml
+# Frontmatter
+---
+title: Guide
+author: John  # Not in schema!
+---
+```
+
+```json
+// Schema - only "title" defined
+{ "properties": { "title": { "type": "string" } } }
+
+// Result
+{
+  "name": "{title}",   // ✅ Expands to "Guide"
+  "writer": "{author}" // ❌ Stays as literal "{author}"
+}
+```
+
+**Rule**: Add all frontmatter properties you need to your schema's `properties`.
+
+See
+[Template Processing Specification](./architecture/template-processing-specification.md)
+for variable scope rules.
+
+### Value Not Transformed
+
+**Symptom:** Full value appears instead of extracted part (e.g., `"climpt-git"`
+instead of `"git"`).
+
+**Cause:** frontmatter-to-schema passes values through without transformation.
+String manipulation is not supported.
+
+**Solutions:**
+
+1. Restructure source data to include pre-extracted values
+2. Post-process output file
+3. Use separate frontmatter fields
+
+See
+[Schema Extensions Reference](./schema-extensions.md#value-transformation-limitations)
+for workarounds.
+
 ## Support
 
 For additional support:
@@ -470,5 +610,9 @@ For additional support:
 1. Check the error messages for specific guidance
 2. Enable debug mode for detailed operation logging
 3. Review the schema validation results
-4. Consult the source code documentation
-5. Create an issue with debug output for complex problems
+4. Consult [Schema Extensions Reference](./schema-extensions.md) for directive
+   documentation
+5. Consult
+   [Template Processing Specification](./architecture/template-processing-specification.md)
+   for variable resolution details
+6. Create an issue with debug output for complex problems

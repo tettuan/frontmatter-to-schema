@@ -1,11 +1,47 @@
 # Documentation Structure
 
+## Quick Navigation
+
+### Getting Started (Conceptual)
+
+- **[Transformation Model](./concepts/transformation-model.md)**: Core concept
+  of the x-\* directive transformation language
+- **[Directive Selection Guide](./guides/directive-selection.md)**: Which
+  directives to use for your use case
+
+### Reference
+
+- **[Schema Extensions Reference](./schema-extensions.md)**: Complete x-\*
+  directive syntax and examples
+- **[Troubleshooting Guide](./troubleshooting.md)**: Common issues and debugging
+
+### Processing Flow (Japanese)
+
+- **[flow.ja.md](./flow.ja.md)**: Detailed processing flow explanation with
+  sub-module responsibilities
+
+---
+
 ## Directory Structure
+
+### `/concepts/`
+
+- **[transformation-model.md](./concepts/transformation-model.md)**: Conceptual
+  overview of the transformation pipeline
+
+### `/guides/`
+
+- **[directive-selection.md](./guides/directive-selection.md)**: Decision flow
+  for choosing x-\* directives
 
 ### `/architecture/`
 
 - **[README.md](./architecture/README.md)**: Architectural overview and
   implementation requirements
+- **[schema-directives-specification.md](./architecture/schema-directives-specification.md)**:
+  8-stage processing order specification
+- **[template-processing-specification.md](./architecture/template-processing-specification.md)**:
+  Template processing system specification
 - **[design-principles.md](./architecture/design-principles.md)**: Core design
   principles and governance framework
 - **[canonical-processing-paths.md](./architecture/canonical-processing-paths.md)**:
@@ -51,7 +87,18 @@
 - **[template-format-examples.md](./implementation/template-format-examples.md)**:
   Concrete usage examples and implementation traces
 
+---
+
 ## Usage Guidelines
+
+### For Users
+
+1. Start with [Transformation Model](./concepts/transformation-model.md) to
+   understand the concept
+2. Use [Directive Selection Guide](./guides/directive-selection.md) to choose
+   directives
+3. Refer to [Schema Extensions Reference](./schema-extensions.md) for syntax
+4. Check [Troubleshooting Guide](./troubleshooting.md) for common issues
 
 ### For Developers
 
