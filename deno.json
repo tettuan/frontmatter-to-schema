@@ -1,9 +1,12 @@
 {
   "name": "@aidevtool/frontmatter-to-schema",
-  "version": "1.7.0",
+  "version": "1.7.1",
   "description": "Convert frontmatter to JSON schema",
   "license": "MIT",
   "exports": "./mod.ts",
+  "bin": {
+    "frontmatter-to-schema": "./src/cli.ts"
+  },
   "exclude": ["tests/e2e/test-output/"],
   "publish": {
     "exclude": [

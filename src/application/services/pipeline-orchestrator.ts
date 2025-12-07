@@ -34,6 +34,11 @@ import { TemplatePath } from "../../domain/template/value-objects/template-path.
 import { Template } from "../../domain/template/entities/template.ts";
 import { createFileError } from "../../domain/shared/types/file-errors.ts";
 import { resolveInputToFiles } from "../../infrastructure/utils/input-resolver.ts";
+import {
+  OutputFormatterPort,
+  OutputFormatType,
+} from "../../infrastructure/ports/output-formatter-port.ts";
+import { DefaultOutputFormatter } from "../../infrastructure/adapters/default-output-formatter.ts";
 
 /**
  * Template loader adapter for ItemsProcessor
@@ -148,6 +153,7 @@ export class PipelineOrchestrator implements DocumentLoader {
     private readonly schemaDirectiveProcessor: SchemaDirectiveProcessor,
     private readonly documentAggregationService: DocumentAggregationService,
     private readonly templateOutputRenderer: TemplateOutputRenderer,
+    private readonly outputFormatter: OutputFormatterPort,
   ) {}
 
   /**
@@ -266,6 +272,18 @@ export class PipelineOrchestrator implements DocumentLoader {
       fileSystem,
     );
 
+    // Create output formatter
+    const outputFormatterResult = DefaultOutputFormatter.create();
+    if (outputFormatterResult.isError()) {
+      return Result.error(
+        new ProcessingError(
+          `Failed to create output formatter: ${outputFormatterResult.unwrapError().message}`,
+          "INITIALIZATION_ERROR",
+          { error: outputFormatterResult.unwrapError() },
+        ),
+      );
+    }
+
     return Result.ok(
       new PipelineOrchestrator(
         fileSystem,
@@ -276,6 +294,7 @@ export class PipelineOrchestrator implements DocumentLoader {
         schemaDirectiveProcessorResult.unwrap(),
         documentAggregationServiceResult.unwrap(),
         templateOutputRendererResult.unwrap(),
+        outputFormatterResult.unwrap(),
       ),
     );
   }
@@ -523,26 +542,30 @@ export class PipelineOrchestrator implements DocumentLoader {
         // Continue with original data if directives fail
       }
 
-      // Format conversion and output writing
-      const outputFormat = result.outputFormat as
-        | "json"
-        | "yaml"
-        | "xml"
-        | "markdown";
-      let finalOutput: string;
+      // Format conversion and output writing using OutputFormatter
+      const outputFormat = result.outputFormat as OutputFormatType;
 
       const dataToWrite = directivesResult.isError()
         ? outputData
         : directivesResult.unwrap();
-      if (outputFormat === "json") {
-        finalOutput = JSON.stringify(dataToWrite, null, 2);
-      } else if (outputFormat === "yaml") {
-        const { stringify } = await import("@std/yaml");
-        finalOutput = stringify(dataToWrite);
-      } else {
-        // For now, fall back to JSON for xml and markdown
-        finalOutput = JSON.stringify(dataToWrite, null, 2);
+
+      const formatResult = this.outputFormatter.format(
+        dataToWrite,
+        outputFormat,
+      );
+      if (formatResult.isError()) {
+        const error = new ProcessingError(
+          `Failed to format output: ${formatResult.unwrapError().message}`,
+          "OUTPUT_FORMAT_ERROR",
+          { outputFormat, error: formatResult.unwrapError() },
+        );
+        allErrors.push(error);
+        console.error(`⚠️  Warning: ${error.message}`);
+        // Fallback to JSON if formatting fails
       }
+      const finalOutput = formatResult.isOk()
+        ? formatResult.unwrap()
+        : JSON.stringify(dataToWrite, null, 2);
 
       const finalWriteResult = await this.fileSystem.writeTextFile(
         config.outputPath,

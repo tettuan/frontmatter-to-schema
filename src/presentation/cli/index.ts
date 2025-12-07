@@ -484,6 +484,10 @@ EXAMPLES:
 
     # Show help
     frontmatter-to-schema help
+
+DOCUMENTATION:
+    Schema/Template setup guide and examples:
+    https://github.com/tettuan/frontmatter-to-schema/blob/main/examples/README.md
 `;
 
     console.log(helpText);
@@ -585,6 +589,12 @@ TEMPLATE EXAMPLE:
 SEE ALSO:
     --help              CLI usage and options
     --version           Version information
+
+DOCUMENTATION:
+    Schema/Template setup guide with working examples:
+    https://github.com/tettuan/frontmatter-to-schema/blob/main/examples/README.md
+
+    Local path: examples/README.md
 `;
     console.log(authoringHelp);
     return { ok: true, data: authoringHelp };
