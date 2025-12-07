@@ -8,16 +8,16 @@
  *
  * @example
  * ```typescript
- * import { processMarkdown, processFiles } from "jsr:@aidevtool/frontmatter-to-schema";
+ * import { transformMarkdown, transformFiles } from "jsr:@aidevtool/frontmatter-to-schema";
  *
- * // Process markdown string directly
- * const result = processMarkdown({
+ * // Transform markdown string directly
+ * const result = transformMarkdown({
  *   markdown: "---\ntitle: Hello\n---\nContent",
  *   schema: { type: "object", properties: { title: { type: "string" } } }
  * });
  *
- * // Process files
- * const fileResult = await processFiles({
+ * // Transform files
+ * const fileResult = await transformFiles({
  *   schema: "./schema.json",
  *   input: "./docs/",
  *   output: "./output.json"
@@ -48,24 +48,24 @@ export type JsonSchema = Record<string, unknown>;
 /**
  * Template definition for output formatting
  */
-export type Template = Record<string, unknown>;
+export type OutputTemplate = Record<string, unknown>;
 
 /**
- * Options for markdown processing
+ * Options for markdown transformation
  */
-export interface ProcessMarkdownOptions {
+export interface TransformMarkdownOptions {
   /** Raw markdown content with YAML frontmatter */
   readonly markdown: string;
   /** JSON Schema defining the output structure */
   readonly schema: JsonSchema;
   /** Optional template for output formatting */
-  readonly template?: Template;
+  readonly template?: OutputTemplate;
 }
 
 /**
- * Result of markdown processing
+ * Result of markdown transformation
  */
-export interface ProcessMarkdownResult {
+export interface TransformMarkdownResult {
   /** Extracted and transformed frontmatter data */
   readonly data: Record<string, unknown>;
   /** Original frontmatter before transformation */
@@ -75,9 +75,9 @@ export interface ProcessMarkdownResult {
 }
 
 /**
- * Options for file-based processing
+ * Options for file-based transformation
  */
-export interface ProcessFilesOptions {
+export interface TransformFilesOptions {
   /** Path to JSON schema file */
   readonly schema: string;
   /** Path to input markdown file(s) or directory */
@@ -91,9 +91,9 @@ export interface ProcessFilesOptions {
 }
 
 /**
- * Result of file processing
+ * Result of file transformation
  */
-export interface ProcessFilesResult {
+export interface TransformFilesResult {
   /** Number of documents processed */
   readonly processedDocuments: number;
   /** Path to output file */
@@ -103,9 +103,9 @@ export interface ProcessFilesResult {
 }
 
 /**
- * Options for creating a processor instance
+ * Options for creating a transformer instance
  */
-export interface ProcessorOptions {
+export interface TransformerOptions {
   /** Custom file system adapter (for testing or alternative runtimes) */
   readonly fileSystem?: {
     readTextFile(path: string): Promise<Result<string, unknown>>;
@@ -133,17 +133,17 @@ export interface ProcessorOptions {
 // ============================================================================
 
 /**
- * Process a single markdown string and extract frontmatter according to schema.
+ * Transform a single markdown string and extract frontmatter according to schema.
  *
- * This is the simplest API for processing markdown content directly
+ * This is the simplest API for transforming markdown content directly
  * without file system operations.
  *
- * @param options - Processing options including markdown content and schema
- * @returns Result containing processed data or error
+ * @param options - Transformation options including markdown content and schema
+ * @returns Result containing transformed data or error
  *
  * @example
  * ```typescript
- * const result = processMarkdown({
+ * const result = transformMarkdown({
  *   markdown: `---
  * title: My Article
  * author: John Doe
@@ -166,9 +166,9 @@ export interface ProcessorOptions {
  * }
  * ```
  */
-export function processMarkdown(
-  options: ProcessMarkdownOptions,
-): Result<ProcessMarkdownResult, ProcessingError> {
+export function transformMarkdown(
+  options: TransformMarkdownOptions,
+): Result<TransformMarkdownResult, ProcessingError> {
   const { markdown, schema } = options;
 
   // Create file system adapter (required by parsing service)
@@ -240,7 +240,7 @@ export function processMarkdown(
 }
 
 /**
- * Process markdown files according to schema and write output.
+ * Transform markdown files according to schema and write output.
  *
  * This API handles file system operations internally and supports:
  * - Single file input
@@ -248,37 +248,37 @@ export function processMarkdown(
  * - Directory input (recursive)
  * - Glob patterns
  *
- * @param options - Processing options including file paths
- * @returns Result containing processing summary or error
+ * @param options - Transformation options including file paths
+ * @returns Result containing transformation summary or error
  *
  * @example
  * ```typescript
- * // Process single file
- * const result = await processFiles({
+ * // Transform single file
+ * const result = await transformFiles({
  *   schema: "./schema.json",
  *   input: "./article.md",
  *   output: "./output.json"
  * });
  *
- * // Process directory
- * const result = await processFiles({
+ * // Transform directory
+ * const result = await transformFiles({
  *   schema: "./schema.json",
  *   input: "./docs/",
  *   output: "./registry.yaml",
  *   format: "yaml"
  * });
  *
- * // Process multiple files
- * const result = await processFiles({
+ * // Transform multiple files
+ * const result = await transformFiles({
  *   schema: "./schema.json",
  *   input: ["./doc1.md", "./doc2.md"],
  *   output: "./combined.json"
  * });
  * ```
  */
-export async function processFiles(
-  options: ProcessFilesOptions,
-): Promise<Result<ProcessFilesResult, ProcessingError>> {
+export async function transformFiles(
+  options: TransformFilesOptions,
+): Promise<Result<TransformFilesResult, ProcessingError>> {
   const fileSystem = DenoFileSystemAdapter.create();
 
   const orchestratorResult = PipelineOrchestrator.create(fileSystem);
@@ -344,13 +344,13 @@ export async function processFiles(
  * @example
  * ```typescript
  * // Equivalent to: frontmatter-to-schema schema.json output.json ./docs/
- * const result = await run(["schema.json", "output.json", "./docs/"]);
+ * const result = await runCLI(["schema.json", "output.json", "./docs/"]);
  *
  * // With options
- * const result = await run(["schema.json", "output.json", "./docs/", "--verbose"]);
+ * const result = await runCLI(["schema.json", "output.json", "./docs/", "--verbose"]);
  * ```
  */
-export async function run(
+export async function runCLI(
   args: string[],
 ): Promise<Result<unknown, ProcessingError>> {
   const cliResult = CLI.create();
@@ -373,31 +373,31 @@ export async function run(
 }
 
 /**
- * Create a reusable processor instance.
+ * Create a reusable transformer instance.
  *
- * Use this when processing multiple batches of files
+ * Use this when transforming multiple batches of files
  * to avoid repeated initialization overhead.
  *
- * @param options - Processor options
- * @returns Result containing processor instance or error
+ * @param options - Transformer options
+ * @returns Result containing transformer instance or error
  *
  * @example
  * ```typescript
- * const processorResult = createProcessor();
- * if (processorResult.isError()) {
- *   throw processorResult.unwrapError();
+ * const transformerResult = createTransformer();
+ * if (transformerResult.isError()) {
+ *   throw transformerResult.unwrapError();
  * }
  *
- * const processor = processorResult.unwrap();
+ * const transformer = transformerResult.unwrap();
  *
- * // Process multiple batches
- * await processor.processFiles({ ... });
- * await processor.processFiles({ ... });
+ * // Transform multiple batches
+ * await transformer.transformFiles({ ... });
+ * await transformer.transformFiles({ ... });
  * ```
  */
-export function createProcessor(
-  options?: ProcessorOptions,
-): Result<Processor, ProcessingError> {
+export function createTransformer(
+  options?: TransformerOptions,
+): Result<Transformer, ProcessingError> {
   const fileSystem = options?.fileSystem
     ? (options.fileSystem as ReturnType<typeof DenoFileSystemAdapter.create>)
     : DenoFileSystemAdapter.create();
@@ -407,13 +407,13 @@ export function createProcessor(
     return Result.error(orchestratorResult.unwrapError());
   }
 
-  return Result.ok(new Processor(orchestratorResult.unwrap(), fileSystem));
+  return Result.ok(new Transformer(orchestratorResult.unwrap(), fileSystem));
 }
 
 /**
- * Reusable processor instance for batch operations.
+ * Reusable transformer instance for batch operations.
  */
-export class Processor {
+export class Transformer {
   constructor(
     private readonly orchestrator: PipelineOrchestrator,
     private readonly fileSystem: ReturnType<
@@ -422,11 +422,11 @@ export class Processor {
   ) {}
 
   /**
-   * Process files with this processor instance.
+   * Transform files with this transformer instance.
    */
-  async processFiles(
-    options: Omit<ProcessFilesOptions, never>,
-  ): Promise<Result<ProcessFilesResult, ProcessingError>> {
+  async transformFiles(
+    options: Omit<TransformFilesOptions, never>,
+  ): Promise<Result<TransformFilesResult, ProcessingError>> {
     let templatePath = options.template;
     if (!templatePath) {
       const schemaContentResult = await this.fileSystem.readTextFile(
@@ -479,4 +479,4 @@ export class Processor {
 // ============================================================================
 
 export { Result } from "./domain/shared/types/result.ts";
-export { ProcessingError } from "./domain/shared/types/errors.ts";
+export { ProcessingError as TransformError } from "./domain/shared/types/errors.ts";
