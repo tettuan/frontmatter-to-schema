@@ -347,9 +347,6 @@ deno fmt
 deno lint
 ```
 
-For detailed development guidelines, see
-[Documentation Index](./docs/CLAUDE.md).
-
 ## License
 
 MIT
