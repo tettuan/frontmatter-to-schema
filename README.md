@@ -278,6 +278,9 @@ Custom JSON Schema extensions for enhanced functionality:
 For detailed documentation, syntax, and examples, see
 **[Schema Extensions Reference](./docs/schema-extensions.md)**.
 
+For practical setup guides and working examples, see
+**[Examples Guide](./examples/README.md)**.
+
 ## Advanced Usage
 
 ### Custom File System Adapter
