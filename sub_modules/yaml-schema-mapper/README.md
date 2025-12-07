@@ -258,66 +258,79 @@ configuration examples and conversion rules.**
 #### `allowSafeConversions` (default: `true`)
 
 **What happens when `true`:**
+
 - `[true]` → `true` (single-element array unwrapped)
 - `"42"` → `42` (numeric string parsed)
 - `"true"` → `true` (boolean string parsed, only "true"/"false")
 - `42` → `"42"` (primitive to string)
 
 **What happens when `false`:**
+
 - `[true]` → `[true]` (preserved with INVALID_CONVERSION warning)
 - `"42"` → `"42"` (preserved with INVALID_CONVERSION warning)
 - All conversions rejected unless exact type match
 
-**Use case:** Set to `false` for strictest type validation where only exact schema types are accepted.
+**Use case:** Set to `false` for strictest type validation where only exact
+schema types are accepted.
 
 #### `allowSemanticConversions` (default: `false`)
 
 **What happens when `true` (with appropriate rules):**
+
 - `null` → `""` (with `null-to-empty-string` rule)
 - `0` → `false`, `1` → `true` (with `number-to-boolean` rule)
 - `true` → `1`, `false` → `0` (with `boolean-to-number` rule)
 - `null` → `[]` (with `null-to-empty-array` rule)
 
 **What happens when `false`:**
+
 - `null` (for string type) → `null` (preserved with INVALID_CONVERSION warning)
 - `0` (for boolean type) → `0` (preserved with INVALID_CONVERSION warning)
 - Semantic meaning changes are rejected
 
-**Use case:** Enable for data migration from legacy systems where type representations differ.
+**Use case:** Enable for data migration from legacy systems where type
+representations differ.
 
 #### `semanticConversionRules` (default: `[]`)
 
 **Available rules:**
+
 - `"null-to-empty-string"`: `null` → `""`
 - `"number-to-boolean"`: `0` → `false`, `1` → `true`
 - `"boolean-to-number"`: `true` → `1`, `false` → `0`
 - `"null-to-empty-array"`: `null` → `[]`
 
-**What happens:**
-Only conversions explicitly listed in this array are applied when `allowSemanticConversions: true`.
+**What happens:** Only conversions explicitly listed in this array are applied
+when `allowSemanticConversions: true`.
 
-**Use case:** Fine-grained control over which semantic conversions are acceptable for your use case.
+**Use case:** Fine-grained control over which semantic conversions are
+acceptable for your use case.
 
 #### `invalidConversionAction` (default: `"preserve"`)
 
 **`"preserve"` - Keep original value:**
-- `[true, false]` (for boolean) → `[true, false]` with AMBIGUOUS_CONVERSION warning
+
+- `[true, false]` (for boolean) → `[true, false]` with AMBIGUOUS_CONVERSION
+  warning
 - `"abc123"` (for integer) → `"abc123"` with INVALID_CONVERSION warning
 - `3.14` (for integer) → `3.14` with VALUE_PRESERVED warning
 - **Data is never lost**, application can handle validation
 
 **`"error"` - Reject with error:**
+
 - `[true, false]` (for boolean) → error severity warning
 - `"abc123"` (for integer) → error severity warning
 - **Strict validation**, forces data quality at transformation layer
 
 **`"fallback"` - Use type default:**
+
 - `[true, false]` (for boolean) → `false` (boolean default)
 - `"abc123"` (for integer) → `0` (integer default)
 - `3.14` (for integer) → `3` (truncated)
 - **Data may be altered** to match schema requirements
 
 **Use case:**
+
 - `preserve`: Best for applications that validate after transformation
 - `error`: Best for production systems requiring strict input
 - `fallback`: Best for data migration where some data loss is acceptable
@@ -325,26 +338,31 @@ Only conversions explicitly listed in this array are applied when `allowSemantic
 #### `warnOnCoercion` (default: `true`)
 
 **What happens when `true`:**
+
 - Every type coercion generates a TYPE_COERCION warning
 - Logs include: path, input type, output type, strategy used
 - Helps track all transformations for debugging
 
 **What happens when `false`:**
+
 - Coercions happen silently without warnings
 - Only ambiguous/invalid conversions generate warnings
 
-**Use case:** Set to `false` in production if you've verified coercions are acceptable and don't need logs.
+**Use case:** Set to `false` in production if you've verified coercions are
+acceptable and don't need logs.
 
 #### `logLevel` (default: `"warn"`)
 
-**`"debug"`:** All warnings including detailed transformation info
-**`"warn"`:** Standard warnings (TYPE_COERCION, AMBIGUOUS_CONVERSION, etc.)
-**`"error"`:** Only error-severity warnings
-**`"silent"`:** No warnings at all (not recommended)
+**`"debug"`:** All warnings including detailed transformation info **`"warn"`:**
+Standard warnings (TYPE_COERCION, AMBIGUOUS_CONVERSION, etc.) **`"error"`:**
+Only error-severity warnings **`"silent"`:** No warnings at all (not
+recommended)
 
-**What happens:** Controls which warnings appear in the result's `warnings` array.
+**What happens:** Controls which warnings appear in the result's `warnings`
+array.
 
-**Use case:** Adjust based on environment (debug in dev, warn in staging, error in prod).
+**Use case:** Adjust based on environment (debug in dev, warn in staging, error
+in prod).
 
 ### Configuration Examples
 
@@ -355,13 +373,13 @@ const result = mapDataToSchema({
   schema: {
     properties: {
       enabled: { type: "boolean" },
-      count: { type: "integer" }
-    }
+      count: { type: "integer" },
+    },
   },
   data: {
-    enabled: [true],      // Safe: [true] → true
-    count: [1, 2, 3]      // Ambiguous: preserved with warning
-  }
+    enabled: [true], // Safe: [true] → true
+    count: [1, 2, 3], // Ambiguous: preserved with warning
+  },
   // No options needed - uses safe defaults
 });
 
@@ -376,15 +394,15 @@ const result = mapDataToSchema({
 const result = mapDataToSchema({
   schema: {
     properties: {
-      value: { type: "boolean" }
-    }
+      value: { type: "boolean" },
+    },
   },
   data: {
-    value: [true, false]
+    value: [true, false],
   },
   options: {
-    invalidConversionAction: "error"  // Reject ambiguous conversions
-  }
+    invalidConversionAction: "error", // Reject ambiguous conversions
+  },
 });
 
 // Result: error severity warning
@@ -398,22 +416,22 @@ const result = mapDataToSchema({
     properties: {
       name: { type: "string" },
       active: { type: "boolean" },
-      score: { type: "integer" }
-    }
+      score: { type: "integer" },
+    },
   },
   data: {
     name: null,
     active: 1,
-    score: true
+    score: true,
   },
   options: {
     allowSemanticConversions: true,
     semanticConversionRules: [
       "null-to-empty-string",
       "number-to-boolean",
-      "boolean-to-number"
-    ]
-  }
+      "boolean-to-number",
+    ],
+  },
 });
 
 // Result:
@@ -427,16 +445,16 @@ const result = mapDataToSchema({
   schema: {
     properties: {
       value: { type: "boolean" },
-      count: { type: "integer" }
-    }
+      count: { type: "integer" },
+    },
   },
   data: {
     value: [true, false],
-    count: 3.14
+    count: 3.14,
   },
   options: {
-    invalidConversionAction: "fallback"  // Use type defaults
-  }
+    invalidConversionAction: "fallback", // Use type defaults
+  },
 });
 
 // Result:
@@ -449,16 +467,16 @@ const result = mapDataToSchema({
 const result = mapDataToSchema({
   schema: {
     properties: {
-      value: { type: "boolean" }
-    }
+      value: { type: "boolean" },
+    },
   },
   data: {
-    value: [true]
+    value: [true],
   },
   options: {
     warnOnCoercion: false,
-    logLevel: "silent"
-  }
+    logLevel: "silent",
+  },
 });
 
 // Result: { value: true }

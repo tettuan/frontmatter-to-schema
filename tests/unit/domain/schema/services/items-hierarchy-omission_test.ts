@@ -50,7 +50,8 @@ Deno.test("items hierarchy omission - x-derived-from uses commands[] notation", 
 
   assertEquals(result.isOk(), true);
   const processedData = result.unwrap();
-  assertEquals(processedData.commandNames, ["deno", "git", "npm"]);
+  // Values preserve extraction order (Issue #3 fix: no sorting)
+  assertEquals(processedData.commandNames, ["git", "npm", "deno"]);
 });
 
 Deno.test("items hierarchy omission - nested array notation works", () => {

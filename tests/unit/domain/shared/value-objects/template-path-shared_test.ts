@@ -59,7 +59,7 @@ Deno.test("TemplatePath - rejects whitespace-only path", () => {
   assertEquals(error.code, "INVALID_TEMPLATE_PATH");
 });
 
-Deno.test("TemplatePath - rejects path without .json extension", () => {
+Deno.test("TemplatePath - rejects path without valid template extension", () => {
   const result = TemplatePath.create(
     "template.txt",
     "container",
@@ -69,7 +69,31 @@ Deno.test("TemplatePath - rejects path without .json extension", () => {
   assert(result.isError());
   const error = result.unwrapError();
   assertEquals(error.code, "INVALID_TEMPLATE_PATH");
-  assert(error.message.includes(".json extension"));
+  assert(error.message.includes(".json, .yml, or .yaml extension"));
+});
+
+Deno.test("TemplatePath - accepts .yaml extension", () => {
+  const result = TemplatePath.create(
+    "template.yaml",
+    "container",
+    DIRECTIVE_NAMES.TEMPLATE,
+  );
+
+  assert(result.isOk());
+  const templatePath = result.unwrap();
+  assertEquals(templatePath.path, "template.yaml");
+});
+
+Deno.test("TemplatePath - accepts .yml extension", () => {
+  const result = TemplatePath.create(
+    "template.yml",
+    "container",
+    DIRECTIVE_NAMES.TEMPLATE,
+  );
+
+  assert(result.isOk());
+  const templatePath = result.unwrap();
+  assertEquals(templatePath.path, "template.yml");
 });
 
 Deno.test("TemplatePath - rejects container type with wrong source", () => {

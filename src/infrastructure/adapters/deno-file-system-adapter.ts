@@ -5,6 +5,7 @@ import {
   FileInfo,
 } from "../../domain/shared/types/file-errors.ts";
 import { FileSystemPort } from "../ports/file-system-port.ts";
+import { expandGlob } from "@std/fs";
 
 /**
  * Deno implementation of FileSystemPort.
@@ -81,6 +82,41 @@ export class DenoFileSystemAdapter implements FileSystemPort {
     } catch (error) {
       return Result.error(this.mapDenoError(error, path, "read"));
     }
+  }
+
+  /**
+   * Expands a glob pattern and returns matching file paths.
+   * Uses Deno's expandGlob under the hood.
+   *
+   * @param pattern - Glob pattern to expand
+   * @param root - Root directory (defaults to cwd)
+   * @returns Array of absolute file paths matching the pattern
+   */
+  async expandGlob(
+    pattern: string,
+    root?: string,
+  ): Promise<Result<string[], FileError>> {
+    try {
+      const files: string[] = [];
+      const rootDir = root ?? this.cwd();
+
+      for await (const entry of expandGlob(pattern, { root: rootDir })) {
+        if (entry.isFile) {
+          files.push(entry.path);
+        }
+      }
+
+      return Result.ok(files);
+    } catch (error) {
+      return Result.error(this.mapDenoError(error, pattern, "read"));
+    }
+  }
+
+  /**
+   * Gets the current working directory.
+   */
+  cwd(): string {
+    return Deno.cwd();
   }
 
   /**
