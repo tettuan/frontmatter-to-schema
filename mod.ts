@@ -8,11 +8,11 @@
  *
  * ## Quick Start
  *
- * ### Process markdown string directly
+ * ### Transform markdown string directly
  * ```typescript
- * import { processMarkdown } from "jsr:@aidevtool/frontmatter-to-schema";
+ * import { transformMarkdown } from "jsr:@aidevtool/frontmatter-to-schema";
  *
- * const result = await processMarkdown({
+ * const result = transformMarkdown({
  *   markdown: "---\ntitle: Hello\n---\nContent",
  *   schema: { type: "object", properties: { title: { type: "string" } } }
  * });
@@ -22,11 +22,11 @@
  * }
  * ```
  *
- * ### Process files
+ * ### Transform files
  * ```typescript
- * import { processFiles } from "jsr:@aidevtool/frontmatter-to-schema";
+ * import { transformFiles } from "jsr:@aidevtool/frontmatter-to-schema";
  *
- * const result = await processFiles({
+ * const result = await transformFiles({
  *   schema: "./schema.json",
  *   input: "./docs/",
  *   output: "./output.json"
@@ -35,9 +35,9 @@
  *
  * ### CLI usage
  * ```typescript
- * import { run } from "jsr:@aidevtool/frontmatter-to-schema";
+ * import { runCLI } from "jsr:@aidevtool/frontmatter-to-schema";
  *
- * await run(["schema.json", "output.json", "./docs/"]);
+ * await runCLI(["schema.json", "output.json", "./docs/"]);
  * ```
  */
 
@@ -46,43 +46,24 @@
 // ============================================================================
 
 export {
-  // Factory for reusable processor
-  createProcessor,
+  // Factory for reusable transformer
+  createTransformer,
   // Types
   type JsonSchema,
-  processFiles,
-  type ProcessFilesOptions,
-  type ProcessFilesResult,
-  ProcessingError,
-  // Core processing functions
-  processMarkdown,
-  type ProcessMarkdownOptions,
-  type ProcessMarkdownResult,
-  Processor,
-  type ProcessorOptions,
+  type OutputTemplate,
   // Error handling
   Result,
-  run,
-  type Template,
+  // CLI runner
+  runCLI,
+  Transformer,
+  type TransformerOptions,
+  // Error type
+  TransformError,
+  // Core transformation functions
+  transformFiles,
+  type TransformFilesOptions,
+  type TransformFilesResult,
+  transformMarkdown,
+  type TransformMarkdownOptions,
+  type TransformMarkdownResult,
 } from "./src/api.ts";
-
-// ============================================================================
-// CLI - For direct CLI class usage (advanced)
-// ============================================================================
-
-export { CLI } from "./src/presentation/cli/index.ts";
-export type { CLIResponse } from "./src/presentation/cli/index.ts";
-
-// ============================================================================
-// Advanced API - For custom pipeline construction
-// ============================================================================
-
-export { PipelineOrchestrator } from "./src/application/services/pipeline-orchestrator.ts";
-export type {
-  PipelineConfig,
-  PipelineResult,
-} from "./src/application/services/pipeline-orchestrator.ts";
-
-// Infrastructure adapters (for dependency injection)
-export { DenoFileSystemAdapter } from "./src/infrastructure/adapters/deno-file-system-adapter.ts";
-export type { FileSystemPort } from "./src/infrastructure/ports/file-system-port.ts";
