@@ -244,20 +244,25 @@ export class SchemaDirectiveProcessor {
       );
     }
 
-    // Filter out null/undefined and convert resolved values to strings
+    // Filter out null/undefined but preserve original types and order
+    // (per spec: "Preserves order of extraction" - docs/schema-extensions.md:104)
     const derivedValues = resolveResult.unwrap()
-      .filter((v) => v !== null && v !== undefined)
-      .map((v) => String(v));
+      .filter((v) => v !== null && v !== undefined);
 
     // Apply x-derived-unique if specified
+    // Use JSON.stringify for deep equality comparison to handle objects/arrays
     const finalValues = schema[DIRECTIVE_NAMES.DERIVED_UNIQUE]
-      ? Array.from(new Set(derivedValues))
+      ? derivedValues.filter((value, index, self) => {
+        const serialized = JSON.stringify(value);
+        return self.findIndex((v) => JSON.stringify(v) === serialized) ===
+          index;
+      })
       : derivedValues;
 
     try {
-      // Set the derived values
+      // Set the derived values (preserve order - no sorting)
       const result = { ...data };
-      this.setNestedValue(result, path, finalValues.sort());
+      this.setNestedValue(result, path, finalValues);
 
       return Result.ok(result);
     } catch (error) {

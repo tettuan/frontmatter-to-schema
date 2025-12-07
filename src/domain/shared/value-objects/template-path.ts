@@ -31,12 +31,15 @@ export class TemplatePath {
       );
     }
 
-    if (!path.endsWith(".json")) {
+    // Allow JSON and YAML extensions (per x-template-format support)
+    const validExtensions = [".json", ".yml", ".yaml"];
+    const hasValidExtension = validExtensions.some((ext) => path.endsWith(ext));
+    if (!hasValidExtension) {
       return Result.error(
         new DomainError(
-          "Template path must have .json extension",
+          "Template path must have .json, .yml, or .yaml extension",
           "INVALID_TEMPLATE_PATH",
-          { path, type, source },
+          { path, type, source, validExtensions },
         ),
       );
     }

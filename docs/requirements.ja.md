@@ -458,10 +458,10 @@ Schemaで使用可能な`x-*`ディレクティブの完全なリファレンス
 
 **パラメータ**:
 
-| パラメータ | 型     | 必須 | 説明                                   |
-| ---------- | ------ | ---- | -------------------------------------- |
+| パラメータ | 型     | 必須 | 説明                                       |
+| ---------- | ------ | ---- | ------------------------------------------ |
 | `source`   | string | Yes  | 収集対象オブジェクトへのパス（ドット記法） |
-| `pattern`  | string | Yes  | 正規表現パターン（ECMAScript）         |
+| `pattern`  | string | Yes  | 正規表現パターン（ECMAScript）             |
 
 **使用例**:
 
@@ -497,7 +497,8 @@ Schemaで使用可能な`x-*`ディレクティブの完全なリファレンス
 
 **前提条件**: 収集元オブジェクトに`additionalProperties: true`が必要
 
-**詳細仕様**: [x-collect-pattern-specification.md](./architecture/x-collect-pattern-specification.md)
+**詳細仕様**:
+[x-collect-pattern-specification.md](./architecture/x-collect-pattern-specification.md)
 
 **重要な制約事項**:
 

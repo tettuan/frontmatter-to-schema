@@ -279,7 +279,8 @@ Deno.test("Pipeline Integration - error handling with missing input", async () =
 
   assertEquals(result.isError(), true);
   const error = result.unwrapError();
-  assertEquals(error.code, "NO_FILES_FOUND");
+  // Issue 6 fix: non-existent paths now return INPUT_NOT_FOUND instead of NO_FILES_FOUND
+  assertEquals(error.code, "INPUT_NOT_FOUND");
 
   await cleanupTestEnvironment();
 });

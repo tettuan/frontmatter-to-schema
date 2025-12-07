@@ -9,7 +9,7 @@ articles:
       - Cline
       - Devin
     published: false
-  - title: '[実験的]AI自動開発のための開発指示書作成'
+  - title: "[実験的]AI自動開発のための開発指示書作成"
     emoji: "\U0001F63D"
     type: tech
     topics:
@@ -49,7 +49,7 @@ articles:
       - ドメイン駆動設計
       - 全域関数
     published: true
-  - title: '5 hours 連続稼働を実現する、Claude Code Companyのモニタリングツール[tmux-monitor]'
+  - title: "5 hours 連続稼働を実現する、Claude Code Companyのモニタリングツール[tmux-monitor]"
     emoji: "\U0001F697"
     type: idea
     topics:
@@ -144,11 +144,11 @@ articles:
       - C3L
     published: true
   - title: 要求を仕様化することは、発見のプロセスである
-    emoji: ''
+    emoji: ""
     type: tech
     topics: []
     published: false
-  - title: '[実践]プロンプトでJSON記載のタスクを実行させるが、時々サボる問題'
+  - title: "[実践]プロンプトでJSON記載のタスクを実行させるが、時々サボる問題"
     emoji: "\U0001F437"
     type: tech
     topics:

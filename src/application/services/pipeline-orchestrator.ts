@@ -33,7 +33,10 @@ import { ItemsExpander } from "../../domain/template/services/items-expander.ts"
 import { TemplatePath } from "../../domain/template/value-objects/template-path.ts";
 import { Template } from "../../domain/template/entities/template.ts";
 import { createFileError } from "../../domain/shared/types/file-errors.ts";
-import { resolveInputToFiles } from "../../infrastructure/utils/input-resolver.ts";
+import {
+  isGlobPattern,
+  resolveInputToFilesWithPort,
+} from "../../infrastructure/utils/input-resolver.ts";
 import {
   OutputFormatterPort,
   OutputFormatType,
@@ -314,49 +317,14 @@ export class PipelineOrchestrator implements DocumentLoader {
     let resolvedInputPath: string | string[] = config.inputPath;
 
     if (typeof config.inputPath === "string") {
-      // Check if the input is a file or directory
-      const statResult = await this.fileSystem.stat(config.inputPath);
-
-      if (statResult.isOk()) {
-        const info = statResult.unwrap();
-
-        if (info.isFile) {
-          // Single file: use as-is
-          resolvedInputPath = [config.inputPath];
-        } else if (info.isDirectory) {
-          // Directory: read directory contents using FileSystemPort
-          const dirResult = await this.fileSystem.readDir(config.inputPath);
-
-          if (dirResult.isError()) {
-            return Result.error(
-              new ProcessingError(
-                `Failed to read directory: ${dirResult.unwrapError().kind}`,
-                "DIRECTORY_READ_ERROR",
-                { inputPath: config.inputPath },
-              ),
-            );
-          }
-
-          const entries = dirResult.unwrap();
-          const markdownFiles = entries
-            .filter((entry) => entry.isFile && /\.md(own)?$/.test(entry.name))
-            .map((entry) => `${config.inputPath}/${entry.name}`);
-
-          if (markdownFiles.length === 0) {
-            return Result.error(
-              new ProcessingError(
-                "No markdown files found in directory",
-                "NO_DOCUMENTS_FOUND",
-                { inputPath: config.inputPath },
-              ),
-            );
-          }
-
-          resolvedInputPath = markdownFiles;
-        }
-      } else {
-        // Glob pattern or non-existent path: use utility (requires real filesystem)
-        const resolvedFiles = await resolveInputToFiles([config.inputPath]);
+      // First check if it's a glob pattern (Issue 6 fix)
+      // Glob patterns should be handled through FileSystemPort to support custom adapters
+      if (isGlobPattern(config.inputPath)) {
+        // Use port-aware glob resolution (supports custom FileSystemPort adapters)
+        const resolvedFiles = await resolveInputToFilesWithPort(
+          [config.inputPath],
+          this.fileSystem,
+        );
 
         if (resolvedFiles.length === 0) {
           return Result.error(
@@ -369,6 +337,47 @@ export class PipelineOrchestrator implements DocumentLoader {
         }
 
         resolvedInputPath = resolvedFiles;
+      } else {
+        // Not a glob pattern - check if the input is a file or directory
+        const statResult = await this.fileSystem.stat(config.inputPath);
+
+        if (statResult.isOk()) {
+          const info = statResult.unwrap();
+
+          if (info.isFile) {
+            // Single file: use as-is
+            resolvedInputPath = [config.inputPath];
+          } else if (info.isDirectory) {
+            // Directory: recursively find markdown files through FileSystemPort
+            // This maintains port abstraction while supporting:
+            // - Recursive subdirectory scanning
+            // - .md, .mdown, and .markdown extension support
+            const markdownFiles = await this.walkDirectoryForMarkdown(
+              config.inputPath,
+            );
+
+            if (markdownFiles.length === 0) {
+              return Result.error(
+                new ProcessingError(
+                  "No markdown files found in directory",
+                  "NO_DOCUMENTS_FOUND",
+                  { inputPath: config.inputPath },
+                ),
+              );
+            }
+
+            resolvedInputPath = markdownFiles;
+          }
+        } else {
+          // Path doesn't exist - return error
+          return Result.error(
+            new ProcessingError(
+              `Input path does not exist: ${config.inputPath}`,
+              "INPUT_NOT_FOUND",
+              { inputPath: config.inputPath },
+            ),
+          );
+        }
       }
     }
 
@@ -664,5 +673,38 @@ export class PipelineOrchestrator implements DocumentLoader {
       filePath,
       schemaToUse,
     );
+  }
+
+  /**
+   * Recursively walks a directory to find markdown files.
+   * Uses FileSystemPort for abstraction - works with custom adapters.
+   * Supports .md, .mdown, and .markdown extensions.
+   *
+   * @param dirPath - Directory path to walk
+   * @returns Array of markdown file paths
+   */
+  private async walkDirectoryForMarkdown(dirPath: string): Promise<string[]> {
+    const markdownFiles: string[] = [];
+    const markdownExtensions = /\.(md|mdown|markdown)$/;
+
+    const dirResult = await this.fileSystem.readDir(dirPath);
+    if (dirResult.isError()) {
+      return markdownFiles;
+    }
+
+    const entries = dirResult.unwrap();
+    for (const entry of entries) {
+      const entryPath = `${dirPath}/${entry.name}`;
+
+      if (entry.isFile && markdownExtensions.test(entry.name)) {
+        markdownFiles.push(entryPath);
+      } else if (entry.isDirectory) {
+        // Recursively walk subdirectories
+        const subFiles = await this.walkDirectoryForMarkdown(entryPath);
+        markdownFiles.push(...subFiles);
+      }
+    }
+
+    return markdownFiles;
   }
 }

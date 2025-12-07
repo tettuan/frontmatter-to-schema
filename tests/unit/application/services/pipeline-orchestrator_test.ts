@@ -183,6 +183,72 @@ Content 2`,
 
     return Promise.resolve(Result.ok(entries));
   }
+
+  /**
+   * Expands a glob pattern and returns matching file paths.
+   * Issue 6 fix: Custom adapters can now provide their own glob expansion.
+   */
+  expandGlob(
+    pattern: string,
+    _root?: string,
+  ): Promise<Result<string[], FileError>> {
+    const files: string[] = [];
+
+    // Extract the base directory from the pattern
+    // For patterns like "/test/glob-test/**/*.md", base is "/test/glob-test"
+    // For patterns like "**/*.md", base is "." (use cwd)
+    let baseDir = "";
+    const parts = pattern.split("/");
+    for (let i = 0; i < parts.length; i++) {
+      if (
+        parts[i].includes("*") || parts[i].includes("?") ||
+        parts[i].includes("[")
+      ) {
+        break;
+      }
+      if (parts[i]) {
+        baseDir += (baseDir || pattern.startsWith("/") ? "/" : "") + parts[i];
+      }
+    }
+
+    if (!baseDir) {
+      baseDir = this.cwd();
+    }
+
+    // Check if base directory exists (for absolute paths in pattern)
+    if (
+      pattern.startsWith("/") && !this.directories.has(baseDir) &&
+      !this.files.has(baseDir)
+    ) {
+      // Base directory doesn't exist - return empty
+      return Promise.resolve(Result.ok(files));
+    }
+
+    // Simple glob matching for tests - match files based on pattern
+    for (const [path, _content] of this.files) {
+      // Check if path is under base directory
+      if (!path.startsWith(baseDir)) {
+        continue;
+      }
+
+      // Check extension matches
+      if (pattern.includes("*.md") && !path.endsWith(".md")) {
+        continue;
+      }
+
+      files.push(path);
+    }
+
+    return Promise.resolve(Result.ok(files));
+  }
+
+  /**
+   * Gets the current working directory.
+   * Issue 6 fix: Custom adapters can provide their own cwd.
+   */
+  cwd(): string {
+    return "/test";
+  }
 }
 
 Deno.test("PipelineOrchestrator - create successfully", () => {
@@ -357,7 +423,8 @@ Deno.test("PipelineOrchestrator - input file not found", async () => {
 
   assertEquals(result.isError(), true);
   const error = result.unwrapError();
-  assertEquals(error.code, "NO_FILES_FOUND");
+  // Issue 6 fix: non-existent paths now return INPUT_NOT_FOUND instead of NO_FILES_FOUND
+  assertEquals(error.code, "INPUT_NOT_FOUND");
 });
 
 Deno.test("PipelineOrchestrator - invalid input path type", async () => {
@@ -375,7 +442,8 @@ Deno.test("PipelineOrchestrator - invalid input path type", async () => {
 
   assertEquals(result.isError(), true);
   const error = result.unwrapError();
-  assertEquals(error.code, "NO_FILES_FOUND");
+  // Issue 6 fix: non-existent paths now return INPUT_NOT_FOUND instead of NO_FILES_FOUND
+  assertEquals(error.code, "INPUT_NOT_FOUND");
 });
 
 Deno.test("PipelineOrchestrator - directory with no markdown files", async () => {
@@ -533,4 +601,263 @@ Deno.test("PipelineOrchestrator - yaml output format", async () => {
   assertEquals(result.isOk(), true);
   const pipelineResult = result.unwrap();
   assertEquals(pipelineResult.metadata.outputFormat, "yaml");
+});
+
+// Tests for Issue 2 fix: recursive directory scanning and .markdown extension support
+
+Deno.test("PipelineOrchestrator - directory with .markdown extension files", async () => {
+  const fileSystem = new MockFileSystemPort();
+  // Set up directory with .markdown extension files
+  fileSystem.setDirectoryEntries("/test/markdown-docs", [
+    { name: "doc1.markdown", isFile: true, isDirectory: false },
+    { name: "doc2.md", isFile: true, isDirectory: false },
+  ]);
+  fileSystem.setFileContent(
+    "/test/markdown-docs/doc1.markdown",
+    `---
+title: Markdown Extension File
+author: Author 1
+---
+
+Content in .markdown file`,
+  );
+  fileSystem.setFileContent(
+    "/test/markdown-docs/doc2.md",
+    `---
+title: MD Extension File
+author: Author 2
+---
+
+Content in .md file`,
+  );
+
+  const orchestrator = PipelineOrchestrator.create(fileSystem).unwrap();
+
+  const config: PipelineConfig = {
+    schemaPath: "/test/schema.json",
+    templatePath: "/test/template.json",
+    inputPath: "/test/markdown-docs",
+    outputPath: "/test/output.json",
+    outputFormat: "json",
+  };
+
+  const result = await orchestrator.execute(config);
+
+  assertEquals(result.isOk(), true);
+  const pipelineResult = result.unwrap();
+  // Should find both .md and .markdown files
+  assertEquals(pipelineResult.processedDocuments, 2);
+});
+
+Deno.test("PipelineOrchestrator - recursive directory scanning", async () => {
+  const fileSystem = new MockFileSystemPort();
+  // Set up nested directory structure
+  fileSystem.setDirectoryEntries("/test/nested-docs", [
+    { name: "root.md", isFile: true, isDirectory: false },
+    { name: "subdir", isFile: false, isDirectory: true },
+  ]);
+  fileSystem.setDirectoryEntries("/test/nested-docs/subdir", [
+    { name: "nested.md", isFile: true, isDirectory: false },
+  ]);
+  fileSystem.setFileContent(
+    "/test/nested-docs/root.md",
+    `---
+title: Root Document
+author: Root Author
+---
+
+Root content`,
+  );
+  fileSystem.setFileContent(
+    "/test/nested-docs/subdir/nested.md",
+    `---
+title: Nested Document
+author: Nested Author
+---
+
+Nested content`,
+  );
+
+  const orchestrator = PipelineOrchestrator.create(fileSystem).unwrap();
+
+  const config: PipelineConfig = {
+    schemaPath: "/test/schema.json",
+    templatePath: "/test/template.json",
+    inputPath: "/test/nested-docs",
+    outputPath: "/test/output.json",
+    outputFormat: "json",
+  };
+
+  const result = await orchestrator.execute(config);
+
+  assertEquals(result.isOk(), true);
+  const pipelineResult = result.unwrap();
+  // Should find files in both root and subdirectory
+  assertEquals(pipelineResult.processedDocuments, 2);
+});
+
+Deno.test("PipelineOrchestrator - deeply nested directory scanning", async () => {
+  const fileSystem = new MockFileSystemPort();
+  // Set up deeply nested directory structure
+  fileSystem.setDirectoryEntries("/test/deep", [
+    { name: "level1", isFile: false, isDirectory: true },
+  ]);
+  fileSystem.setDirectoryEntries("/test/deep/level1", [
+    { name: "level2", isFile: false, isDirectory: true },
+  ]);
+  fileSystem.setDirectoryEntries("/test/deep/level1/level2", [
+    { name: "deep-file.md", isFile: true, isDirectory: false },
+  ]);
+  fileSystem.setFileContent(
+    "/test/deep/level1/level2/deep-file.md",
+    `---
+title: Deeply Nested
+author: Deep Author
+---
+
+Deep content`,
+  );
+
+  const orchestrator = PipelineOrchestrator.create(fileSystem).unwrap();
+
+  const config: PipelineConfig = {
+    schemaPath: "/test/schema.json",
+    templatePath: "/test/template.json",
+    inputPath: "/test/deep",
+    outputPath: "/test/output.json",
+    outputFormat: "json",
+  };
+
+  const result = await orchestrator.execute(config);
+
+  assertEquals(result.isOk(), true);
+  const pipelineResult = result.unwrap();
+  // Should find the deeply nested file
+  assertEquals(pipelineResult.processedDocuments, 1);
+});
+
+Deno.test("PipelineOrchestrator - directory with .mdown extension files", async () => {
+  const fileSystem = new MockFileSystemPort();
+  // Set up directory with .mdown extension files
+  fileSystem.setDirectoryEntries("/test/mdown-docs", [
+    { name: "doc.mdown", isFile: true, isDirectory: false },
+  ]);
+  fileSystem.setFileContent(
+    "/test/mdown-docs/doc.mdown",
+    `---
+title: Mdown Extension File
+author: Mdown Author
+---
+
+Content in .mdown file`,
+  );
+
+  const orchestrator = PipelineOrchestrator.create(fileSystem).unwrap();
+
+  const config: PipelineConfig = {
+    schemaPath: "/test/schema.json",
+    templatePath: "/test/template.json",
+    inputPath: "/test/mdown-docs",
+    outputPath: "/test/output.json",
+    outputFormat: "json",
+  };
+
+  const result = await orchestrator.execute(config);
+
+  assertEquals(result.isOk(), true);
+  const pipelineResult = result.unwrap();
+  // Should find .mdown files
+  assertEquals(pipelineResult.processedDocuments, 1);
+});
+
+// ============================================================================
+// Issue 6: Custom FileSystemPort adapter glob/directory support tests
+// ============================================================================
+
+Deno.test("PipelineOrchestrator - glob pattern uses custom adapter expandGlob (Issue 6)", async () => {
+  // Issue 6 fix: Glob patterns should be processed through FileSystemPort
+  // instead of falling back to native Deno APIs
+  const fileSystem = new MockFileSystemPort();
+
+  // Add additional markdown files for glob matching
+  fileSystem.setFileContent(
+    "/test/glob-test/article1.md",
+    `---
+title: Article 1
+author: Author 1
+---
+
+Article 1 content`,
+  );
+
+  fileSystem.setFileContent(
+    "/test/glob-test/article2.md",
+    `---
+title: Article 2
+author: Author 2
+---
+
+Article 2 content`,
+  );
+
+  fileSystem.setDirectoryEntries("/test/glob-test", [
+    { name: "article1.md", isFile: true, isDirectory: false },
+    { name: "article2.md", isFile: true, isDirectory: false },
+  ]);
+
+  const orchestrator = PipelineOrchestrator.create(fileSystem).unwrap();
+
+  const config: PipelineConfig = {
+    schemaPath: "/test/schema.json",
+    templatePath: "/test/template.json",
+    inputPath: "/test/glob-test/**/*.md", // Glob pattern
+    outputPath: "/test/output.json",
+    outputFormat: "json",
+  };
+
+  const result = await orchestrator.execute(config);
+
+  // Should process files found through custom adapter's expandGlob
+  assertEquals(result.isOk(), true);
+  const pipelineResult = result.unwrap();
+  assertEquals(pipelineResult.processedDocuments, 2);
+});
+
+Deno.test("PipelineOrchestrator - glob pattern with no matches returns error (Issue 6)", async () => {
+  const fileSystem = new MockFileSystemPort();
+  const orchestrator = PipelineOrchestrator.create(fileSystem).unwrap();
+
+  const config: PipelineConfig = {
+    schemaPath: "/test/schema.json",
+    templatePath: "/test/template.json",
+    inputPath: "/nonexistent/**/*.md", // Glob pattern that won't match
+    outputPath: "/test/output.json",
+    outputFormat: "json",
+  };
+
+  const result = await orchestrator.execute(config);
+
+  assertEquals(result.isError(), true);
+  assertEquals(result.unwrapError().code, "NO_FILES_FOUND");
+});
+
+Deno.test("PipelineOrchestrator - custom adapter cwd is used for glob resolution (Issue 6)", async () => {
+  // Issue 6 fix: The custom adapter's cwd() should be used for relative glob patterns
+  const fileSystem = new MockFileSystemPort();
+
+  // Mock cwd returns "/test", so "**/*.md" should find files under /test
+  const orchestrator = PipelineOrchestrator.create(fileSystem).unwrap();
+
+  const config: PipelineConfig = {
+    schemaPath: "/test/schema.json",
+    templatePath: "/test/template.json",
+    inputPath: "**/*.md", // Relative glob pattern - should use adapter's cwd
+    outputPath: "/test/output.json",
+    outputFormat: "json",
+  };
+
+  const result = await orchestrator.execute(config);
+
+  // Should find files using the adapter's cwd ("/test")
+  assertEquals(result.isOk(), true);
 });

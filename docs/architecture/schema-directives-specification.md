@@ -249,9 +249,12 @@ stdin: true
 - **役割**: 正規表現パターンにマッチするプロパティの収集
 - **適用対象**: 配列プロパティ
 - **処理ステージ**: Stage 0（yaml-schema-mapper内）
-- **目的**: 動的なプロパティ名（`uv-*`等のワイルドカードパターン）をkey-value配列として収集
-- **依存関係**: yaml-schema-mapper処理時に実行、`additionalProperties: true`が必要
-- **詳細仕様**: [x-collect-pattern-specification.md](./x-collect-pattern-specification.md)
+- **目的**:
+  動的なプロパティ名（`uv-*`等のワイルドカードパターン）をkey-value配列として収集
+- **依存関係**:
+  yaml-schema-mapper処理時に実行、`additionalProperties: true`が必要
+- **詳細仕様**:
+  [x-collect-pattern-specification.md](./x-collect-pattern-specification.md)
 - **使用例**:
 
 ```json

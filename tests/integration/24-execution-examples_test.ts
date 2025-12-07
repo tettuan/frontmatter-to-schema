@@ -1043,7 +1043,8 @@ Content`,
       });
 
       assertEquals(result.isError(), true);
-      assertEquals(result.unwrapError().code, "NO_FILES_FOUND");
+      // Issue 6 fix: non-existent paths now return INPUT_NOT_FOUND instead of NO_FILES_FOUND
+      assertEquals(result.unwrapError().code, "INPUT_NOT_FOUND");
     });
 
     await t.step("Example 20: Invalid JSON schema", async () => {

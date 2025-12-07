@@ -35,6 +35,7 @@ import {
 import { FrontmatterParsingService } from "./domain/frontmatter/services/frontmatter-parsing-service.ts";
 import { SchemaDirectiveProcessor } from "./domain/schema/services/schema-directive-processor.ts";
 import { CLI } from "./presentation/cli/index.ts";
+import { dirname, isAbsolute, join } from "@std/path";
 
 // ============================================================================
 // Types
@@ -293,7 +294,16 @@ export async function transformFiles(
     if (schemaContentResult.isOk()) {
       try {
         const schemaData = JSON.parse(schemaContentResult.unwrap());
-        templatePath = schemaData["x-template"];
+        const rawTemplatePath = schemaData["x-template"];
+        if (rawTemplatePath) {
+          // Resolve relative template paths against schema directory (mirror CLI behavior)
+          if (!isAbsolute(rawTemplatePath)) {
+            const schemaDir = dirname(options.schema);
+            templatePath = join(schemaDir, rawTemplatePath);
+          } else {
+            templatePath = rawTemplatePath;
+          }
+        }
       } catch {
         // Ignore parse errors, will fail later with better message
       }
@@ -435,7 +445,16 @@ export class Transformer {
       if (schemaContentResult.isOk()) {
         try {
           const schemaData = JSON.parse(schemaContentResult.unwrap());
-          templatePath = schemaData["x-template"];
+          const rawTemplatePath = schemaData["x-template"];
+          if (rawTemplatePath) {
+            // Resolve relative template paths against schema directory (mirror CLI behavior)
+            if (!isAbsolute(rawTemplatePath)) {
+              const schemaDir = dirname(options.schema);
+              templatePath = join(schemaDir, rawTemplatePath);
+            } else {
+              templatePath = rawTemplatePath;
+            }
+          }
         } catch {
           // Ignore
         }

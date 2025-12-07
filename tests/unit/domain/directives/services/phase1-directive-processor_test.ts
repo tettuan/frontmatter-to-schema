@@ -402,3 +402,160 @@ Deno.test("Phase1DirectiveProcessor - Totality compliance (never throws)", () =>
     }
   }
 });
+
+// ========================================
+// Issue 5: x-flatten-arrays scalar/null handling tests
+// These tests verify that Phase 1 uses FlattenArraysDirective
+// for consistent semantics (scalar→[value], null→[], undefined→[])
+// ========================================
+
+Deno.test("Phase1DirectiveProcessor - x-flatten-arrays wraps scalar value in array (Issue 5)", () => {
+  const processor = Phase1DirectiveProcessor.create().unwrap();
+  const document = createMockDocument("/test/doc.md", {
+    traceability: "REQ-004", // scalar string, not array
+  });
+
+  const schema = {
+    type: "object",
+    properties: {
+      traceability: {
+        type: "array",
+        "x-flatten-arrays": "traceability",
+        items: { type: "string" },
+      },
+    },
+  };
+
+  const result = processor.processDocument(document, schema);
+
+  assertEquals(result.isOk(), true);
+  const processed = result.unwrap();
+  const data = processed.getFrontmatter()?.getData();
+  assertEquals(data?.traceability, ["REQ-004"]); // scalar wrapped in array
+});
+
+Deno.test("Phase1DirectiveProcessor - x-flatten-arrays converts null to empty array (Issue 5)", () => {
+  const processor = Phase1DirectiveProcessor.create().unwrap();
+  const document = createMockDocument("/test/doc.md", {
+    traceability: null, // null value
+  });
+
+  const schema = {
+    type: "object",
+    properties: {
+      traceability: {
+        type: "array",
+        "x-flatten-arrays": "traceability",
+        items: { type: "string" },
+      },
+    },
+  };
+
+  const result = processor.processDocument(document, schema);
+
+  assertEquals(result.isOk(), true);
+  const processed = result.unwrap();
+  const data = processed.getFrontmatter()?.getData();
+  assertEquals(data?.traceability, []); // null → empty array
+});
+
+Deno.test("Phase1DirectiveProcessor - x-flatten-arrays converts undefined to empty array (Issue 5)", () => {
+  const processor = Phase1DirectiveProcessor.create().unwrap();
+  const document = createMockDocument("/test/doc.md", {
+    title: "Test Document", // traceability property is missing (undefined)
+  });
+
+  const schema = {
+    type: "object",
+    properties: {
+      traceability: {
+        type: "array",
+        "x-flatten-arrays": "traceability",
+        items: { type: "string" },
+      },
+    },
+  };
+
+  const result = processor.processDocument(document, schema);
+
+  assertEquals(result.isOk(), true);
+  const processed = result.unwrap();
+  const data = processed.getFrontmatter()?.getData();
+  assertEquals(data?.traceability, []); // undefined → empty array
+  assertEquals(data?.title, "Test Document"); // other properties unchanged
+});
+
+Deno.test("Phase1DirectiveProcessor - x-flatten-arrays wraps numeric scalar (Issue 5)", () => {
+  const processor = Phase1DirectiveProcessor.create().unwrap();
+  const document = createMockDocument("/test/doc.md", {
+    priority: 5, // numeric scalar
+  });
+
+  const schema = {
+    type: "object",
+    properties: {
+      priority: {
+        type: "array",
+        "x-flatten-arrays": "priority",
+        items: { type: "number" },
+      },
+    },
+  };
+
+  const result = processor.processDocument(document, schema);
+
+  assertEquals(result.isOk(), true);
+  const processed = result.unwrap();
+  const data = processed.getFrontmatter()?.getData();
+  assertEquals(data?.priority, [5]); // number wrapped in array
+});
+
+Deno.test("Phase1DirectiveProcessor - x-flatten-arrays spec example: nested array [A, [B]] (Issue 5)", () => {
+  const processor = Phase1DirectiveProcessor.create().unwrap();
+  const document = createMockDocument("/test/doc.md", {
+    traceability: ["A", ["B"]], // from docs/requirements.ja.md:253
+  });
+
+  const schema = {
+    type: "object",
+    properties: {
+      traceability: {
+        type: "array",
+        "x-flatten-arrays": "traceability",
+        items: { type: "string" },
+      },
+    },
+  };
+
+  const result = processor.processDocument(document, schema);
+
+  assertEquals(result.isOk(), true);
+  const processed = result.unwrap();
+  const data = processed.getFrontmatter()?.getData();
+  assertEquals(data?.traceability, ["A", "B"]); // flattened
+});
+
+Deno.test("Phase1DirectiveProcessor - x-flatten-arrays spec example: scalar D (Issue 5)", () => {
+  const processor = Phase1DirectiveProcessor.create().unwrap();
+  const document = createMockDocument("/test/doc.md", {
+    traceability: "D", // from docs/requirements.ja.md:253
+  });
+
+  const schema = {
+    type: "object",
+    properties: {
+      traceability: {
+        type: "array",
+        "x-flatten-arrays": "traceability",
+        items: { type: "string" },
+      },
+    },
+  };
+
+  const result = processor.processDocument(document, schema);
+
+  assertEquals(result.isOk(), true);
+  const processed = result.unwrap();
+  const data = processed.getFrontmatter()?.getData();
+  assertEquals(data?.traceability, ["D"]); // scalar → [scalar]
+});

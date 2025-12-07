@@ -1,12 +1,15 @@
 # x-collect-pattern Usage Guide
 
-This guide explains how to use the `x-collect-pattern` directive to collect properties matching a regex pattern.
+This guide explains how to use the `x-collect-pattern` directive to collect
+properties matching a regex pattern.
 
-> **Specification**: For detailed technical specifications, see [x-collect-pattern-specification.md](../architecture/x-collect-pattern-specification.md)
+> **Specification**: For detailed technical specifications, see
+> [x-collect-pattern-specification.md](../architecture/x-collect-pattern-specification.md)
 
 ## Overview
 
-`x-collect-pattern` collects properties from a source object that match a regex pattern and outputs them as an array of key-value pairs.
+`x-collect-pattern` collects properties from a source object that match a regex
+pattern and outputs them as an array of key-value pairs.
 
 ---
 
@@ -168,16 +171,17 @@ uv:
 
 ### Pattern Comparison
 
-| Pattern | Pros | Cons |
-|---------|------|------|
-| Nested in options (`source: "options"`) | Maintains existing structure | Requires prefix (`uv-`), options becomes complex |
-| Dedicated object (`source: "uv"`) | Clear structure, no prefix needed | Additional hierarchy in frontmatter |
+| Pattern                                 | Pros                              | Cons                                             |
+| --------------------------------------- | --------------------------------- | ------------------------------------------------ |
+| Nested in options (`source: "options"`) | Maintains existing structure      | Requires prefix (`uv-`), options becomes complex |
+| Dedicated object (`source: "uv"`)       | Clear structure, no prefix needed | Additional hierarchy in frontmatter              |
 
 ---
 
 ## additionalProperties Placement Rules
 
-When using `x-collect-pattern`, you must place `additionalProperties: true` on the **source object**.
+When using `x-collect-pattern`, you must place `additionalProperties: true` on
+the **source object**.
 
 ### Basic Principle
 
@@ -187,13 +191,13 @@ When using `x-collect-pattern`, you must place `additionalProperties: true` on t
 {
   "target_property": {
     "x-collect-pattern": {
-      "source": "source_path",  // ← This path points to
+      "source": "source_path", // ← This path points to
       "pattern": "..."
     }
   },
   "source_path": {
     "type": "object",
-    "additionalProperties": true  // ← Place here
+    "additionalProperties": true // ← Place here
   }
 }
 ```
@@ -207,7 +211,7 @@ When using `x-collect-pattern`, you must place `additionalProperties: true` on t
   "properties": {
     "uv": {
       "type": "object",
-      "additionalProperties": true  // ✅ Source for "source": "uv"
+      "additionalProperties": true // ✅ Source for "source": "uv"
     },
     "user_variables": {
       "x-collect-pattern": {
@@ -229,7 +233,7 @@ When using `x-collect-pattern`, you must place `additionalProperties: true` on t
       "properties": {
         "settings": {
           "type": "object",
-          "additionalProperties": true  // ✅ Source for "source": "config.settings"
+          "additionalProperties": true // ✅ Source for "source": "config.settings"
         }
       }
     },
@@ -254,7 +258,7 @@ When using `x-collect-pattern`, you must place `additionalProperties: true` on t
         "input": { "type": "array" },
         "destination": { "type": "boolean" }
       },
-      "additionalProperties": true  // ✅ Allow additional properties
+      "additionalProperties": true // ✅ Allow additional properties
     },
     "user_variables": {
       "x-collect-pattern": {
@@ -277,7 +281,7 @@ When using `x-collect-pattern`, you must place `additionalProperties: true` on t
       "source": "uv",
       "pattern": "^.*$"
     },
-    "additionalProperties": true  // ❌ Wrong location
+    "additionalProperties": true // ❌ Wrong location
   },
   "uv": {
     "type": "object"
@@ -292,7 +296,7 @@ When using `x-collect-pattern`, you must place `additionalProperties: true` on t
 {
   "uv": {
     "type": "object",
-    "additionalProperties": false  // ❌ Collected properties are dropped
+    "additionalProperties": false // ❌ Collected properties are dropped
   },
   "user_variables": {
     "x-collect-pattern": {
@@ -313,7 +317,8 @@ yaml-schema-mapper processes in this order:
 2. If `additionalProperties: false`, **delete** undefined properties
 3. Execute `x-collect-pattern` collection
 
-With `additionalProperties: false`, step 2 deletes the properties before step 3 can collect them.
+With `additionalProperties: false`, step 2 deletes the properties before step 3
+can collect them.
 
 ---
 
@@ -321,12 +326,12 @@ With `additionalProperties: false`, step 2 deletes the properties before step 3 
 
 The `format` option controls the output structure:
 
-| Format | Output |
-|--------|--------|
-| `key-value` (default) | `[{key, value}, ...]` |
-| `object` | `{key1: value1, ...}` |
-| `keys` | `["key1", "key2", ...]` |
-| `values` | `[value1, value2, ...]` |
+| Format                | Output                  |
+| --------------------- | ----------------------- |
+| `key-value` (default) | `[{key, value}, ...]`   |
+| `object`              | `{key1: value1, ...}`   |
+| `keys`                | `["key1", "key2", ...]` |
+| `values`              | `[value1, value2, ...]` |
 
 ### Example: keys format
 
