@@ -206,15 +206,15 @@ item_template.json   ─── 各アイテムの構造定義
 
 ### ディレクティブ早見表
 
-| ディレクティブ | 配置場所 | 値の型 | 役割 |
-|---------------|---------|--------|------|
-| `x-template` | Schema root | `string` (ファイルパス) | コンテナテンプレート指定 |
-| `x-template-items` | Schema root | `string` (ファイルパス) | アイテムテンプレート指定 |
-| `x-frontmatter-part` | Schema property | `boolean` (true) | フロントマター配列挿入位置 |
-| `x-derived-from` | Schema property | `string` (パス式) | 他プロパティから値を導出 |
-| `x-derived-unique` | Schema property | `boolean` | 導出配列の重複除去 |
-| `{@items}` | Template | - | アイテム配列の挿入位置 |
-| `{property}` | Template | - | 変数置換 |
+| ディレクティブ       | 配置場所        | 値の型                  | 役割                       |
+| -------------------- | --------------- | ----------------------- | -------------------------- |
+| `x-template`         | Schema root     | `string` (ファイルパス) | コンテナテンプレート指定   |
+| `x-template-items`   | Schema root     | `string` (ファイルパス) | アイテムテンプレート指定   |
+| `x-frontmatter-part` | Schema property | `boolean` (true)        | フロントマター配列挿入位置 |
+| `x-derived-from`     | Schema property | `string` (パス式)       | 他プロパティから値を導出   |
+| `x-derived-unique`   | Schema property | `boolean`               | 導出配列の重複除去         |
+| `{@items}`           | Template        | -                       | アイテム配列の挿入位置     |
+| `{property}`         | Template        | -                       | 変数置換                   |
 
 ### 処理フロー
 
@@ -247,12 +247,12 @@ item_template.json   ─── 各アイテムの構造定義
 
 ### よくある誤り
 
-| 誤り | 正しい形式 |
-|------|-----------|
+| 誤り                                                  | 正しい形式                                 |
+| ----------------------------------------------------- | ------------------------------------------ |
 | `"x-template-items": { "path": "...", "key": "..." }` | `"x-template-items": "item_template.json"` |
-| `"x-template-items": true` （Template内） | `"{@items}"` |
-| `x-frontmatter-part` をTemplate内に配置 | Schema内のpropertyに配置 |
-| item_template.json を省略（複数ファイル処理時） | 必ず作成 |
+| `"x-template-items": true` （Template内）             | `"{@items}"`                               |
+| `x-frontmatter-part` をTemplate内に配置               | Schema内のpropertyに配置                   |
+| item_template.json を省略（複数ファイル処理時）       | 必ず作成                                   |
 
 ### 動作確認コマンド
 

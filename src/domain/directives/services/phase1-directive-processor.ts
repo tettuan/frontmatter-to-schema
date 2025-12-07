@@ -16,6 +16,7 @@ import { Result } from "../../shared/types/result.ts";
 import { ProcessingError } from "../../shared/types/errors.ts";
 import { MarkdownDocument } from "../../frontmatter/entities/markdown-document.ts";
 import { FrontmatterData } from "../../frontmatter/value-objects/frontmatter-data.ts";
+import { FlattenArraysDirective } from "../../schema/value-objects/flatten-arrays-directive.ts";
 import { JmesPath } from "@halvardm/jmespath";
 
 /**
@@ -123,8 +124,10 @@ export class Phase1DirectiveProcessor {
   /**
    * Apply x-flatten-arrays directive to data
    *
-   * Flattens nested arrays in properties that have x-flatten-arrays: true
-   * in the schema. Recursively flattens all nested levels.
+   * Uses FlattenArraysDirective value object to ensure consistent semantics:
+   * - null/undefined → empty array []
+   * - scalar → [scalar]
+   * - nested arrays → recursively flattened
    *
    * @param data - Frontmatter data object
    * @param schema - JSON Schema with directive annotations
@@ -141,7 +144,7 @@ export class Phase1DirectiveProcessor {
       }
 
       const properties = schema.properties as Record<string, unknown>;
-      const processedData = { ...data };
+      let processedData = { ...data };
       let hasChanges = false;
 
       // Process each property that has x-flatten-arrays directive
@@ -153,24 +156,36 @@ export class Phase1DirectiveProcessor {
         const schemaObj = propSchema as Record<string, unknown>;
 
         // Check if property has x-flatten-arrays directive (must be string)
-        const flattenDirective = schemaObj["x-flatten-arrays"];
-        if (typeof flattenDirective !== "string") {
+        const flattenDirectiveValue = schemaObj["x-flatten-arrays"];
+        if (typeof flattenDirectiveValue !== "string") {
           continue;
         }
 
-        // Directive value IS the frontmatter property name to flatten
-        const frontmatterPropertyName = flattenDirective;
-        const value = processedData[frontmatterPropertyName];
-        if (!Array.isArray(value)) {
-          continue;
+        // Use FlattenArraysDirective value object for consistent semantics
+        const directiveResult = FlattenArraysDirective.create(
+          flattenDirectiveValue,
+        );
+        if (directiveResult.isError()) {
+          return Result.error(
+            new ProcessingError(
+              `Failed to create flatten-arrays directive: ${directiveResult.unwrapError().message}`,
+              "FLATTEN_ARRAYS_ERROR",
+              { error: directiveResult.unwrapError() },
+            ),
+          );
         }
 
-        // Flatten the array
-        const flattened = this.flattenArray(value);
+        const directive = directiveResult.unwrap();
+        const originalValue = processedData[directive.getPropertyName()];
 
-        // Only update if changed
-        if (!this.arraysEqual(value, flattened)) {
-          processedData[frontmatterPropertyName] = flattened;
+        // Apply directive (handles null, undefined, scalar, and array cases)
+        processedData = directive.apply(processedData);
+
+        // Check if value changed
+        const newValue = processedData[directive.getPropertyName()];
+        if (
+          JSON.stringify(originalValue) !== JSON.stringify(newValue)
+        ) {
           hasChanges = true;
         }
       }
@@ -185,50 +200,6 @@ export class Phase1DirectiveProcessor {
         ),
       );
     }
-  }
-
-  /**
-   * Recursively flatten a nested array to a single level
-   *
-   * @param arr - Array to flatten (may contain nested arrays)
-   * @returns Flattened array
-   */
-  private flattenArray(arr: unknown[]): unknown[] {
-    const result: unknown[] = [];
-
-    for (const item of arr) {
-      if (Array.isArray(item)) {
-        // Recursively flatten nested arrays
-        result.push(...this.flattenArray(item));
-      } else {
-        result.push(item);
-      }
-    }
-
-    return result;
-  }
-
-  /**
-   * Compare two arrays for equality
-   *
-   * @param a - First array
-   * @param b - Second array
-   * @returns True if arrays are equal
-   */
-  private arraysEqual(a: unknown[], b: unknown[]): boolean {
-    if (a.length !== b.length) return false;
-
-    for (let i = 0; i < a.length; i++) {
-      if (Array.isArray(a[i]) && Array.isArray(b[i])) {
-        if (!this.arraysEqual(a[i] as unknown[], b[i] as unknown[])) {
-          return false;
-        }
-      } else if (a[i] !== b[i]) {
-        return false;
-      }
-    }
-
-    return true;
   }
 
   /**

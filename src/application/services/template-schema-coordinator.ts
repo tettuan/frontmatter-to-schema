@@ -10,6 +10,8 @@ import { Template } from "../../domain/template/entities/template.ts";
 import { FileSystemPort } from "../../infrastructure/ports/file-system-port.ts";
 import { createFileError } from "../../domain/shared/types/file-errors.ts";
 import { resolve } from "@std/path";
+import { parse as parseYaml } from "@std/yaml";
+import { DIRECTIVE_NAMES } from "../../domain/schema/constants/directive-names.ts";
 
 /**
  * Template handoff context for coordination between domains
@@ -92,12 +94,26 @@ export class TemplateSchemaCoordinator {
       const schemaPath = schema.getPath().toString();
       const schemaDir = schemaPath.substring(0, schemaPath.lastIndexOf("/"));
 
+      // Extract x-template-format from schema if specified
+      let templateFormat: "json" | "yaml" | undefined;
+      const schemaDataResult = schema.getData();
+      if (schemaDataResult.isOk()) {
+        const schemaData = schemaDataResult.unwrap();
+        const formatDirective = schemaData[DIRECTIVE_NAMES.TEMPLATE_FORMAT];
+        if (formatDirective === "json" || formatDirective === "yaml") {
+          templateFormat = formatDirective;
+        }
+      }
+
       // 2. Load container template (resolve relative to schema directory)
       const containerTemplatePath = this.resolveTemplatePath(
         templateContext.containerTemplate.path,
         schemaDir,
       );
-      const containerTemplate = await this.loadTemplate(containerTemplatePath);
+      const containerTemplate = await this.loadTemplate(
+        containerTemplatePath,
+        templateFormat,
+      );
 
       if (containerTemplate.isError()) {
         return Result.error(
@@ -119,7 +135,10 @@ export class TemplateSchemaCoordinator {
           templateContext.itemsTemplate.path,
           schemaDir,
         );
-        const itemsTemplateResult = await this.loadTemplate(itemsTemplatePath);
+        const itemsTemplateResult = await this.loadTemplate(
+          itemsTemplatePath,
+          templateFormat,
+        );
 
         if (itemsTemplateResult.isError()) {
           return Result.error(
@@ -220,10 +239,25 @@ export class TemplateSchemaCoordinator {
   }
 
   /**
+   * Detects template format from file extension
+   */
+  private detectFormatFromExtension(
+    path: string,
+  ): "json" | "yaml" {
+    if (path.endsWith(".yaml") || path.endsWith(".yml")) {
+      return "yaml";
+    }
+    return "json";
+  }
+
+  /**
    * Loads a template from file path using FileSystemPort
+   * @param templatePath - Path to the template file
+   * @param formatOverride - Optional format override from x-template-format
    */
   private async loadTemplate(
     templatePath: string,
+    formatOverride?: "json" | "yaml",
   ): Promise<Result<Template, ProcessingError>> {
     try {
       // Read template file
@@ -240,20 +274,39 @@ export class TemplateSchemaCoordinator {
         );
       }
 
-      // Parse template JSON
+      // Determine format: explicit override > file extension
+      const format = formatOverride ??
+        this.detectFormatFromExtension(templatePath);
+      const content = contentResult.unwrap();
+
+      // Parse template based on format
       let templateData: Record<string, unknown>;
       try {
-        templateData = JSON.parse(contentResult.unwrap());
+        if (format === "yaml") {
+          const parsed = parseYaml(content);
+          if (typeof parsed !== "object" || parsed === null) {
+            return Result.error(
+              new ProcessingError(
+                "YAML template must be an object",
+                "TEMPLATE_PARSE_ERROR",
+                { templatePath, format },
+              ),
+            );
+          }
+          templateData = parsed as Record<string, unknown>;
+        } else {
+          templateData = JSON.parse(content);
+        }
       } catch (parseError) {
         return Result.error(
           new ProcessingError(
-            `Failed to parse template JSON: ${
+            `Failed to parse template ${format.toUpperCase()}: ${
               parseError instanceof Error
                 ? parseError.message
                 : String(parseError)
             }`,
             "TEMPLATE_PARSE_ERROR",
-            { templatePath, error: parseError },
+            { templatePath, format, error: parseError },
           ),
         );
       }
@@ -273,7 +326,7 @@ export class TemplateSchemaCoordinator {
       // Create Template entity with proper TemplateData structure
       const templateDataFormatted = {
         content: templateData,
-        format: "json" as const, // Templates are loaded as JSON
+        format: format,
       };
       const templateResult = Template.create(
         templatePathResult.unwrap(),

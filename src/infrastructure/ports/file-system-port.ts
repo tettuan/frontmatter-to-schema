@@ -37,4 +37,25 @@ export interface FileSystemPort {
    * Reads directory entries.
    */
   readDir(path: string): Promise<Result<DirectoryEntry[], FileError>>;
+
+  /**
+   * Expands a glob pattern and returns matching file paths.
+   * Optional method - adapters can implement this for optimized glob expansion.
+   * If not implemented, the orchestrator will use walkDirectory + pattern matching.
+   *
+   * @param pattern - Glob pattern to expand (e.g., "docs/*.md", "**\/*.ts")
+   * @param root - Root directory to start from (defaults to current working directory)
+   * @returns Array of absolute file paths matching the pattern
+   */
+  expandGlob?(
+    pattern: string,
+    root?: string,
+  ): Promise<Result<string[], FileError>>;
+
+  /**
+   * Gets the current working directory.
+   * Optional method - used as default root for glob expansion.
+   * If not implemented, the orchestrator will require explicit root paths.
+   */
+  cwd?(): string;
 }

@@ -706,3 +706,178 @@ Deno.test("SchemaDirectiveProcessor - combined directives (Issue #1233)", () => 
   assertEquals(topics.includes("D"), true);
   assertEquals(topics.includes("E"), true);
 });
+
+// Issue 3 tests: x-derived-from preserves order and type
+Deno.test("SchemaDirectiveProcessor - x-derived-from preserves extraction order (Issue #3)", () => {
+  const mockFileSystem = new MockFileSystemPort();
+  const processor = SchemaDirectiveProcessor.create(mockFileSystem as any)
+    .unwrap();
+
+  const data = {
+    items: [
+      { name: "zebra" },
+      { name: "apple" },
+      { name: "mango" },
+    ],
+  };
+
+  const schema = {
+    properties: {
+      names: {
+        "x-derived-from": "items[].name",
+      },
+    },
+  };
+
+  const result = processor.applySchemaDirectives(data, schema);
+
+  assertEquals(result.isOk(), true);
+  const processed = result.unwrap();
+  const names = processed.names as string[];
+
+  // Order must be preserved (not alphabetically sorted)
+  assertEquals(names[0], "zebra");
+  assertEquals(names[1], "apple");
+  assertEquals(names[2], "mango");
+});
+
+Deno.test("SchemaDirectiveProcessor - x-derived-from preserves number types (Issue #3)", () => {
+  const mockFileSystem = new MockFileSystemPort();
+  const processor = SchemaDirectiveProcessor.create(mockFileSystem as any)
+    .unwrap();
+
+  const data = {
+    items: [
+      { priority: 3 },
+      { priority: 1 },
+      { priority: 2 },
+    ],
+  };
+
+  const schema = {
+    properties: {
+      priorities: {
+        "x-derived-from": "items[].priority",
+      },
+    },
+  };
+
+  const result = processor.applySchemaDirectives(data, schema);
+
+  assertEquals(result.isOk(), true);
+  const processed = result.unwrap();
+  const priorities = processed.priorities as number[];
+
+  // Numbers must be preserved (not converted to strings)
+  assertEquals(typeof priorities[0], "number");
+  assertEquals(priorities[0], 3);
+  assertEquals(priorities[1], 1);
+  assertEquals(priorities[2], 2);
+});
+
+Deno.test("SchemaDirectiveProcessor - x-derived-from preserves boolean types (Issue #3)", () => {
+  const mockFileSystem = new MockFileSystemPort();
+  const processor = SchemaDirectiveProcessor.create(mockFileSystem as any)
+    .unwrap();
+
+  const data = {
+    items: [
+      { active: true },
+      { active: false },
+      { active: true },
+    ],
+  };
+
+  const schema = {
+    properties: {
+      activeFlags: {
+        "x-derived-from": "items[].active",
+      },
+    },
+  };
+
+  const result = processor.applySchemaDirectives(data, schema);
+
+  assertEquals(result.isOk(), true);
+  const processed = result.unwrap();
+  const flags = processed.activeFlags as boolean[];
+
+  // Booleans must be preserved (not converted to strings)
+  assertEquals(typeof flags[0], "boolean");
+  assertEquals(flags[0], true);
+  assertEquals(flags[1], false);
+  assertEquals(flags[2], true);
+});
+
+Deno.test("SchemaDirectiveProcessor - x-derived-from preserves object types (Issue #3)", () => {
+  const mockFileSystem = new MockFileSystemPort();
+  const processor = SchemaDirectiveProcessor.create(mockFileSystem as any)
+    .unwrap();
+
+  const data = {
+    items: [
+      { meta: { key: "a", value: 1 } },
+      { meta: { key: "b", value: 2 } },
+    ],
+  };
+
+  const schema = {
+    properties: {
+      allMeta: {
+        "x-derived-from": "items[].meta",
+      },
+    },
+  };
+
+  const result = processor.applySchemaDirectives(data, schema);
+
+  assertEquals(result.isOk(), true);
+  const processed = result.unwrap();
+  const metas = processed.allMeta as Array<{ key: string; value: number }>;
+
+  // Objects must be preserved
+  assertEquals(typeof metas[0], "object");
+  assertEquals(metas[0].key, "a");
+  assertEquals(metas[0].value, 1);
+  assertEquals(metas[1].key, "b");
+  assertEquals(metas[1].value, 2);
+});
+
+Deno.test("SchemaDirectiveProcessor - x-derived-unique with mixed types (Issue #3)", () => {
+  const mockFileSystem = new MockFileSystemPort();
+  const processor = SchemaDirectiveProcessor.create(mockFileSystem as any)
+    .unwrap();
+
+  const data = {
+    items: [
+      { value: 1 },
+      { value: "1" }, // String "1" is different from number 1
+      { value: 1 }, // Duplicate number 1
+      { value: true },
+    ],
+  };
+
+  const schema = {
+    properties: {
+      uniqueValues: {
+        "x-derived-from": "items[].value",
+        "x-derived-unique": true,
+      },
+    },
+  };
+
+  const result = processor.applySchemaDirectives(data, schema);
+
+  assertEquals(result.isOk(), true);
+  const processed = result.unwrap();
+  const values = processed.uniqueValues as Array<number | string | boolean>;
+
+  // Should have 3 unique values: number 1, string "1", and boolean true
+  assertEquals(values.length, 3);
+  assertEquals(values[0], 1);
+  assertEquals(typeof values[0], "number");
+  assertEquals(values[1], "1");
+  assertEquals(typeof values[1], "string");
+  assertEquals(values[2], true);
+  assertEquals(typeof values[2], "boolean");
+});
