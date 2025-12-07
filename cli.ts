@@ -1,6 +1,6 @@
 #!/usr/bin/env -S deno run --allow-read --allow-write --allow-run --allow-env --config=deno.json
 
-import { CLI } from "./mod.ts";
+import { CLI } from "./src/presentation/cli/index.ts";
 
 async function main() {
   const cliResult = CLI.create();

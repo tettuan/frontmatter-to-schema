@@ -65,24 +65,3 @@ export {
   run,
   type Template,
 } from "./src/api.ts";
-
-// ============================================================================
-// CLI - For direct CLI class usage (advanced)
-// ============================================================================
-
-export { CLI } from "./src/presentation/cli/index.ts";
-export type { CLIResponse } from "./src/presentation/cli/index.ts";
-
-// ============================================================================
-// Advanced API - For custom pipeline construction
-// ============================================================================
-
-export { PipelineOrchestrator } from "./src/application/services/pipeline-orchestrator.ts";
-export type {
-  PipelineConfig,
-  PipelineResult,
-} from "./src/application/services/pipeline-orchestrator.ts";
-
-// Infrastructure adapters (for dependency injection)
-export { DenoFileSystemAdapter } from "./src/infrastructure/adapters/deno-file-system-adapter.ts";
-export type { FileSystemPort } from "./src/infrastructure/ports/file-system-port.ts";
